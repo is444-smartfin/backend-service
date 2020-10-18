@@ -7,7 +7,7 @@ from boto3.dynamodb.conditions import Key
 
 from dotenv import load_dotenv
 from flask import request, jsonify
-from is452 import app, requires_auth, requires_scope, AuthError, get_token_auth_header
+from digibank import app, requires_auth, requires_scope, AuthError, get_token_auth_header
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ dynamodb = boto3.resource("dynamodb")
 def get_users_info():
     token = get_token_auth_header()
     response = requests.get(
-        "https://is452.us.auth0.com/userinfo",
+        "https://smu-digibank.us.auth0.com/userinfo",
         headers={'Authorization': 'Bearer ' + token})
     user_info = response.json()
     email = user_info['email']

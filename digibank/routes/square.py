@@ -1,7 +1,7 @@
 import logging
 import json
 from flask import request, jsonify
-from is452 import app
+from digibank import app
 
 logger = logging.getLogger(__name__)
 

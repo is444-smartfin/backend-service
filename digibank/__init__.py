@@ -10,8 +10,8 @@ from jose import jwt
 app = Flask(__name__)
 CORS(app)
 
-AUTH0_DOMAIN = "is452.us.auth0.com"
-API_AUDIENCE = "https://api.is452.cloud/" # has to follow strictly to the token's audience (including https:// protocols and trailing slash /)
+AUTH0_DOMAIN = "smu-digibank.us.auth0.com"
+API_AUDIENCE = "https://api.ourfin.tech/" # has to follow strictly to the token's audience (including https:// protocols and trailing slash /)
 ALGORITHMS = ["RS256"]
 
 # Error handler
@@ -121,5 +121,5 @@ def requires_scope(required_scope):
     return False
 
 # Import all your API endpoint methods here
-import is452.routes.square
-import is452.routes.users
+import digibank.routes.square
+import digibank.routes.users
