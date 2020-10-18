@@ -5,7 +5,7 @@ from functools import wraps
 from flask import Flask, request, jsonify, _request_ctx_stack
 from flask_cors import CORS
 
-import jwt
+from jose import jwt
 
 app = Flask(__name__)
 CORS(app)
@@ -123,3 +123,4 @@ def requires_scope(required_scope):
 # Import all your API endpoint methods here
 import digibank.routes.square
 import digibank.routes.users
+import digibank.routes.accounts

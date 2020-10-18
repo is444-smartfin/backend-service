@@ -37,8 +37,6 @@ def get_users_info():
     )
     print(response['Items'][0]['full_name'])
     user_info.update(response['Items'][0])
-    print(user_info)
-
     return user_info
 
 
@@ -61,7 +59,6 @@ def onboarding():
     )
     logger.info(
         "{} has successfully completed the onboarding process".format(email))
-    print(response)
     return response
 
 
