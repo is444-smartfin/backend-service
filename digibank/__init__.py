@@ -5,7 +5,7 @@ from functools import wraps
 from flask import Flask, request, jsonify, _request_ctx_stack
 from flask_cors import CORS
 
-from jose import jwt
+import jwt
 
 app = Flask(__name__)
 CORS(app)

@@ -1,18 +1,22 @@
 import os
 import logging
 import requests
-
+import json
 import boto3
-from boto3.dynamodb.conditions import Key
+
+import jwt
+from six.moves.urllib.request import urlopen
 
 from dotenv import load_dotenv
 from flask import request, jsonify
-from digibank import app, requires_auth, requires_scope, AuthError, get_token_auth_header
+from digibank import app, requires_auth, requires_scope, AuthError, get_token_auth_header, AUTH0_DOMAIN, API_AUDIENCE, ALGORITHMS
+from boto3.dynamodb.conditions import Key
 
 load_dotenv()
 logger = logging.getLogger(__name__)
 
 dynamodb = boto3.resource("dynamodb")
+
 
 @app.route("/users", methods=['GET'])
 @requires_auth
@@ -34,26 +38,32 @@ def get_users_info():
     print(response['Items'][0]['full_name'])
     user_info.update(response['Items'][0])
     print(user_info)
-    
 
     return user_info
 
+
 @app.route("/users/onboarding", methods=['POST'])
 def onboarding():
+    token = get_token_auth_header()
+    payload = jwt.decode(token, verify=False) # get email from claimset
+    email = payload['email']
+
     # then get data
     data = request.get_json()
     # post data to dynamodb
 
     table = dynamodb.Table("users")
     response = table.put_item(
-       Item={
-            'email': data['email'],
+        Item={
+            'email': email,
             'full_name': data['name']
         }
     )
-    logger.info("{} has successfully completed the onboarding process".format(data['email']))
+    logger.info(
+        "{} has successfully completed the onboarding process".format(email))
     print(response)
     return response
+
 
 @app.route("/users/scoped", methods=['GET'])
 @requires_auth
