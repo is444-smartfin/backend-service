@@ -1,0 +1,13 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: 'circleci/python:latest'
+    steps:
+      - checkout
+      - run:
+          name: install
+          command: pip install -r requirements.txt
+      - run:
+          name: test
+          command: pytest
