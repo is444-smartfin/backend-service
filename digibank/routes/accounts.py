@@ -148,6 +148,28 @@ def accounts_tbank_link():
         # (not v secure... but tBank doesn't support OAuth)
 
         # post data to dynamodb
+        table = dynamodb.Table("users")
+        response = table.update_item(
+            Key={
+                'email': user_info['email']
+            },
+            UpdateExpression="set #accounts = list_append(if_not_exists(#accounts, :empty_list), :account_info)",
+            ExpressionAttributeNames={
+                '#accounts': 'accounts'
+            },
+            ExpressionAttributeValues={
+                ':empty_list': [], # default value
+                ':account_info': [{
+                    "bank": "tBank",
+                    "userId": userID,
+                    "pin": PIN
+                }],
+            },
+            ReturnValues="UPDATED_NEW"
+        )
+        print(response)
+        print("ok")
+
         return jsonify({"status": 200, "message": "Your tBank account is now linked to (idk what we're called haha)."})
 
     elif errorCode == "010041":
