@@ -153,17 +153,17 @@ def accounts_tbank_link():
             Key={
                 'email': user_info['email']
             },
-            UpdateExpression="set #accounts = list_append(if_not_exists(#accounts, :empty_list), :account_info)",
+            UpdateExpression="set #accounts = :account_info",
             ExpressionAttributeNames={
                 '#accounts': 'accounts'
             },
             ExpressionAttributeValues={
-                ':empty_list': [], # default value
-                ':account_info': [{
-                    "bank": "tBank",
-                    "userId": userID,
-                    "pin": PIN
-                }],
+                ':account_info': {
+                    "tBank": {
+                        "userId": userID,
+                        "pin": PIN
+                    }
+                },
             },
             ReturnValues="UPDATED_NEW"
         )
@@ -176,6 +176,33 @@ def accounts_tbank_link():
         logger.error("OTP has expired. You will receiving a SMS")
 
     return jsonify({"status": 401, "message": "Invalid user ID, PIN or OTP."}), 401
+
+
+# TODO: fix inconsistent API url, no "tbank"
+@app.route("/accounts/unlink", methods=['POST'])
+@requires_auth
+def accounts_tbank_unlink():
+    # find out who's calling this endpoint
+    token = get_token_auth_header()
+    user_info = get_user_info(token)
+
+    # then get POSTed form data
+    data = request.get_json()
+
+    table = dynamodb.Table("users")
+    response = table.update_item(
+        Key={
+            'email': user_info['email']
+        },
+        UpdateExpression="remove #accounts.#bank",
+        ExpressionAttributeNames={
+            '#accounts': 'accounts',
+            '#bank': data['name']
+        },
+        ReturnValues="ALL_NEW"
+    )
+    print(response)
+    return jsonify({"status": 200, "message": "OK"}), 200
 
 
 @app.route("/accounts/tbank/sync", methods=['GET'])
