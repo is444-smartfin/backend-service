@@ -30,3 +30,50 @@ def get_user_info(token):
         headers={'Authorization': 'Bearer ' + token})
     user_info = response.json()
     return user_info
+
+@app.route("/integrations/tbank/user_accounts", methods=['GET'])
+@requires_auth
+def tbank_list_user_accounts():
+    # find out who's calling this endpoint
+    token = get_token_auth_header()
+    user_info = get_user_info(token)
+
+    # then get POSTed form data
+    data = request.get_json()
+
+    # request for OTP
+    serviceName = "getCustomerAccounts"
+    userID = "goijiajian"
+    PIN = "123456"
+    OTP = "999999"
+
+    header = {
+        "Header": {
+            "serviceName": serviceName,
+            "userID": userID,
+            "PIN": PIN,
+            "OTP": OTP
+        }
+    }
+
+    final_url = "{0}?Header={1}".format(url(), json.dumps(header))
+    response = requests.post(final_url)
+    print(final_url)
+
+    serviceResp = response.json()['Content']['ServiceResponse']
+    serviceRespHeader = serviceResp['ServiceRespHeader']
+    errorCode = serviceRespHeader['GlobalErrorID']
+
+    if errorCode == "010000":
+        logger.info("{} successfully requested for their Accounts List".format(
+            user_info['email']))
+        accountsList = serviceResp['AccountList']['account']
+        return jsonify({"status": 200, "data": accountsList})
+
+
+    return jsonify({"status": 401, "message": "Unknown error."}), 401
+
+    # if can login, we save it to our db, for now...
+    # (not v secure... but tBank doesn't support OAuth)
+
+    # post data to dynamodb

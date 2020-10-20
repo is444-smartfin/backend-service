@@ -69,15 +69,15 @@ def accounts_mfa():
     userID = data['userId']
     PIN = data['pin']
 
-    headerObj = {
-        'Header': {
-            'serviceName': serviceName,
-            'userID': userID,
-            'PIN': PIN,
+    header = {
+        "Header": {
+            "serviceName": serviceName,
+            "userID": userID,
+            "PIN": PIN,
         }
     }
 
-    final_url = "{0}?Header={1}".format(url(), json.dumps(headerObj))
+    final_url = "{0}?Header={1}".format(url(), json.dumps(header))
     response = requests.post(final_url)
     print(final_url)
 
@@ -120,16 +120,16 @@ def accounts_link():
     PIN = data['pin']
     OTP = data['otp']
 
-    headerObj = {
-        'Header': {
-            'serviceName': serviceName,
-            'userID': userID,
-            'PIN': PIN,
-            'OTP': OTP
+    header = {
+        "Header": {
+            "serviceName": serviceName,
+            "userID": userID,
+            "PIN": PIN,
+            "OTP": OTP
         }
     }
 
-    final_url = "{0}?Header={1}".format(url(), json.dumps(headerObj))
+    final_url = "{0}?Header={1}".format(url(), json.dumps(header))
     response = requests.post(final_url)
     print(final_url)
 
@@ -213,35 +213,35 @@ def accounts_sync():
     # post data to dynamodb
 
     # tbank
-    serviceName = 'getTransactionHistory'
-    userID = 'goijiajian'
-    PIN = '123456'
-    OTP = '999999'
+    serviceName = "getTransactionHistory"
+    userID = "goijiajian"
+    PIN = "123456"
+    OTP = "999999"
     # Content
-    accountID = '6624'
-    startDate = '2020-08-01 00:00:00'
-    endDate = '2020-10-10 00:00:00'
-    numRecordsPerPage = '15'
-    pageNum = '1'
+    accountID = "6624"
+    startDate = "2020-08-01 00:00:00"
+    endDate = "2020-10-10 00:00:00"
+    numRecordsPerPage = "15"
+    pageNum = "1"
 
-    headerObj = {
-        'Header': {
-            'serviceName': serviceName,
-            'userID': userID,
-            'PIN': PIN,
-            'OTP': OTP
+    header = {
+        "Header": {
+            "serviceName": serviceName,
+            "userID": userID,
+            "PIN": PIN,
+            "OTP": OTP
         }
     }
-    contentObj = {
-        'Content': {
-            'accountID': accountID,
-            'startDate': startDate,
-            'endDate': endDate,
-            'numRecordsPerPage': numRecordsPerPage,
-            'pageNum': pageNum
+    content = {
+        "Content": {
+            "accountID": accountID,
+            "startDate": startDate,
+            "endDate": endDate,
+            "numRecordsPerPage": numRecordsPerPage,
+            "pageNum": pageNum
         }
     }
     final_url = "{0}?Header={1}&Content={2}".format(
-        url(), json.dumps(headerObj), json.dumps(contentObj))
+        url(), json.dumps(header), json.dumps(content))
     response = requests.post(final_url)
     return response.json()
