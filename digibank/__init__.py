@@ -124,3 +124,4 @@ def requires_scope(required_scope):
 import digibank.routes.square
 import digibank.routes.users
 import digibank.routes.accounts
+import digibank.routes.integrations.tbank

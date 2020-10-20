@@ -54,9 +54,9 @@ def accounts_info():
 # Request for Multi-factor Auth e.g. OTP
 
 
-@app.route("/accounts/tbank/mfa", methods=['POST'])
+@app.route("/accounts/mfa", methods=['POST'])
 @requires_auth
-def accounts_tbank_mfa():
+def accounts_mfa():
     # find out who's calling this endpoint
     token = get_token_auth_header()
     user_info = get_user_info(token)
@@ -104,9 +104,9 @@ def accounts_tbank_mfa():
 
 
 # Currently supports tBank only
-@app.route("/accounts/tbank/link", methods=['POST'])
+@app.route("/accounts/link", methods=['POST'])
 @requires_auth
-def accounts_tbank_link():
+def accounts_link():
     # find out who's calling this endpoint
     token = get_token_auth_header()
     user_info = get_user_info(token)
@@ -181,7 +181,7 @@ def accounts_tbank_link():
 # TODO: fix inconsistent API url, no "tbank"
 @app.route("/accounts/unlink", methods=['POST'])
 @requires_auth
-def accounts_tbank_unlink():
+def accounts_unlink():
     # find out who's calling this endpoint
     token = get_token_auth_header()
     user_info = get_user_info(token)
@@ -205,9 +205,9 @@ def accounts_tbank_unlink():
     return jsonify({"status": 200, "message": "OK"}), 200
 
 
-@app.route("/accounts/tbank/sync", methods=['GET'])
+@app.route("/accounts/sync", methods=['GET'])
 # @requires_auth
-def accounts_tbank_sync():
+def accounts_sync():
     # then get data
     data = request.get_json()
     # post data to dynamodb
