@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import time
 
 import boto3
 import jwt
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 dynamodb = boto3.resource("dynamodb")
 
+
 def get_user_info(token):
     response = requests.get(
         "https://smu-digibank.us.auth0.com/userinfo",
@@ -24,25 +26,39 @@ def get_user_info(token):
     user_info = response.json()
     return user_info
 
-@app.route("/recipes/create", methods=['POST'])
-@requires_auth
+# tbank salary create
+
+
+@app.route("/recipes/create", methods=['GET'])
+# @requires_auth
 def recipes_create():
     # find out who's calling this endpoint
-    token = get_token_auth_header()
-    user_info = get_user_info(token)
+    # token = get_token_auth_header()
+    # user_info = get_user_info(token)
 
     # then get POSTed form data
     data = request.get_json()
 
-    table = dynamodb.Table("users")
+    table = dynamodb.Table("scheduled_tasks")
     response = table.update_item(
         Key={
-            'email': user_info['email']
+            'email': 'jiajiannn@gmail.com' #user_info['email']
         },
-        UpdateExpression="remove #accounts.#bank",
+        UpdateExpression="set #task_name = :task_name, #data = :data, #creation = :creation, #expiration = :expiration",
         ExpressionAttributeNames={
-            '#accounts': 'accounts',
-            '#bank': data['name']
+            '#task_name': 'task_name',
+            '#data': 'data'
+        },
+        ExpressionAttributeValues={
+            ':task_name': 'tbank.salary.credit',
+            ':data': {
+                'from': '6624',
+                'to': '6590',
+                'amount': '1.88',
+                'schedule': 'every month'
+            },
+            ':creation': int(time.time() // 60 * 60),
+            ':expiration': int(time.time() // 60 * 60) + 600
         },
         ReturnValues="ALL_NEW"
     )
