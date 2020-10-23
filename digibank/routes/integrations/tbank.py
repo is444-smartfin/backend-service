@@ -131,9 +131,6 @@ def accounts_sync():
 
     return jsonify({"status": 401, "message": "Unknown error."}), 401
 
-    return response.json()
-
-
 @app.route("/integrations/tbank/credit_transfer", methods=['GET'])
 # @requires_auth
 def tbank_credit_transfer():
