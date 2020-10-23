@@ -78,6 +78,61 @@ def tbank_list_user_accounts():
 
     # post data to dynamodb
 
+@app.route("/integrations/tbank/transaction_history", methods=['GET'])
+# @requires_auth
+def accounts_sync():
+    # then get data
+    data = request.get_json()
+    # post data to dynamodb
+
+    # tbank
+    serviceName = "getTransactionHistory"
+    userID = "goijiajian"
+    PIN = "123456"
+    OTP = "999999"
+    # Content
+    accountID = "6624"
+    startDate = "2020-08-01 00:00:00"
+    endDate = "2020-12-30 00:00:00"
+    numRecordsPerPage = "15"
+    pageNum = "1"
+
+    header = {
+        "Header": {
+            "serviceName": serviceName,
+            "userID": userID,
+            "PIN": PIN,
+            "OTP": OTP
+        }
+    }
+    content = {
+        "Content": {
+            "accountID": accountID,
+            "startDate": startDate,
+            "endDate": endDate,
+            "numRecordsPerPage": numRecordsPerPage,
+            "pageNum": pageNum
+        }
+    }
+    final_url = "{0}?Header={1}&Content={2}".format(
+        url(), json.dumps(header), json.dumps(content))
+    print(final_url)
+
+    response = requests.post(final_url)
+    serviceResp = response.json()['Content']['ServiceResponse']
+    serviceRespHeader = serviceResp['ServiceRespHeader']
+    errorCode = serviceRespHeader['GlobalErrorID']
+
+    if errorCode == "010000":
+        logger.info("{} successfully requested for their Transaction History".format(
+            "user")) # user_info['email']
+        transactions = serviceResp['CDMTransactionDetail']['transaction_Detail']
+        return jsonify({"status": 200, "data": transactions})
+
+    return jsonify({"status": 401, "message": "Unknown error."}), 401
+
+    return response.json()
+
 
 @app.route("/integrations/tbank/credit_transfer", methods=['GET'])
 # @requires_auth
@@ -134,7 +189,7 @@ def tbank_credit_transfer():
             "user")) # user_info['email']
         return jsonify({"status": 200, "data": serviceResp})
 
-    return jsonify({"status": 401, "message": "Unknown error."}), 401
+    return jsonify({"status": 401, "message": "Unhandled error."}), 401
 
     # if can login, we save it to our db, for now...
     # (not v secure... but tBank doesn't support OAuth)
