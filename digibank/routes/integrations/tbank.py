@@ -31,6 +31,7 @@ def get_user_info(token):
     user_info = response.json()
     return user_info
 
+
 @app.route("/integrations/tbank/user_accounts", methods=['GET'])
 @requires_auth
 def tbank_list_user_accounts():
@@ -70,6 +71,68 @@ def tbank_list_user_accounts():
         accountsList = serviceResp['AccountList']['account']
         return jsonify({"status": 200, "data": accountsList})
 
+    return jsonify({"status": 401, "message": "Unknown error."}), 401
+
+    # if can login, we save it to our db, for now...
+    # (not v secure... but tBank doesn't support OAuth)
+
+    # post data to dynamodb
+
+
+@app.route("/integrations/tbank/credit_transfer", methods=['GET'])
+# @requires_auth
+def tbank_credit_transfer():
+    # find out who's calling this endpoint
+    # token = get_token_auth_header()
+    # user_info = get_user_info(token)
+
+    # then get POSTed form data
+    data = request.get_json()
+
+    # then get tBank account deets from DynamoDB
+
+    # request for OTP
+    serviceName = "creditTransfer"
+    userID = "goijiajian" # get from DynamoDB using
+    accountFrom = "0000006624"
+    accountTo = "0000006590"
+    transactionAmount = "1.80"
+    transactionReferenceNumber = "TRF5000"
+    narrative = "Automatic Transfer via Smartly API"
+    PIN = "123456"
+    OTP = "999999"
+
+    header = {
+        "Header": {
+            "serviceName": serviceName,
+            "userID": userID,
+            "PIN": PIN,
+            "OTP": OTP
+        }
+    }
+
+    content = {
+        "Content": {
+            "accountFrom": accountFrom,
+            "accountTo": accountTo,
+            "transactionAmount": transactionAmount,
+            "transactionReferenceNumber": transactionReferenceNumber,
+            "narrative": narrative
+        }
+    }
+
+    final_url = "{0}?Header={1}&Content={2}".format(url(), json.dumps(header), json.dumps(content))
+    response = requests.post(final_url)
+    print(final_url)
+
+    serviceResp = response.json()['Content']['ServiceResponse']
+    serviceRespHeader = serviceResp['ServiceRespHeader']
+    errorCode = serviceRespHeader['GlobalErrorID']
+
+    if errorCode == "010000":
+        logger.info("{} successfully requested for their Accounts List".format(
+            "user")) # user_info['email']
+        return jsonify({"status": 200, "data": serviceResp})
 
     return jsonify({"status": 401, "message": "Unknown error."}), 401
 
