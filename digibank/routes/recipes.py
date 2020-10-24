@@ -47,7 +47,9 @@ def recipes_create():
         UpdateExpression="set #task_name = :task_name, #data = :data, #creation = :creation, #expiration = :expiration",
         ExpressionAttributeNames={
             '#task_name': 'task_name',
-            '#data': 'data'
+            '#data': 'data',
+            '#creation': 'creation_time',
+            '#expiration': 'expiration_time' # this has DynamoDB's TTL attribute
         },
         ExpressionAttributeValues={
             ':task_name': 'tbank.salary.credit',
@@ -58,7 +60,7 @@ def recipes_create():
                 'schedule': 'every month'
             },
             ':creation': int(time.time() // 60 * 60),
-            ':expiration': int(time.time() // 60 * 60) + 600
+            ':expiration': int(time.time() // 60 * 60) + 10
         },
         ReturnValues="ALL_NEW"
     )
