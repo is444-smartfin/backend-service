@@ -42,6 +42,8 @@ def recipes_create_lambda():
     accountFrom = data['accountFrom']
     accountTo = data['accountTo']
     amount = data['amount']
+    creationTime = data['creationTime']
+    expirationTime = data['expirationTime']
 
     table = dynamodb.Table("scheduled_tasks")
     response = table.update_item(
