@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import time
+from datetime import datetime
 
 import boto3
 import jwt
@@ -148,9 +149,9 @@ def tbank_credit_transfer():
     # request for OTP
     serviceName = "creditTransfer"
     userID = "goijiajian" # get from DynamoDB using
-    accountFrom = "0000006624"
-    accountTo = "0000006590"
-    transactionAmount = "1.80"
+    accountFrom = data['accountFrom']
+    accountTo = data['accountTo']
+    transactionAmount = data['amount']
     transactionReferenceNumber = data['transactionId']
     narrative = data['narrative']
     PIN = "123456"
@@ -208,7 +209,10 @@ def tbank_recipe_salary_transfer():
     
     email = payload['email']['S']
     taskName = payload['task_name']['S']
-    # creationTime = payload['creation_time']['N']
+
+    # putting it here to save costs, since AWS Lambda will call this endpoint
+    if taskName != "tbank.salary.transfer":
+        return jsonify({"status": 403, "message": "Forbidden. Wrong task name provided."}), 403
 
     taskData = payload['data']['M'] # to
     taskSchedule = taskData['schedule']['S']
@@ -218,11 +222,9 @@ def tbank_recipe_salary_transfer():
 
     # print(taskSchedule, amount, accountFrom, accountTo, email, taskName)
     creationTime = int(time.time())
-    expirationTime = creationTime + relativedelta(months=+1)
-    print(expirationTime)
 
-    if taskName != "tbank.salary.transfer":
-        return jsonify({"status": 403, "message": "Forbidden. Wrong task name provided."}), 403
+    expirationTime = datetime.now() + relativedelta(months=+1) # use relative delta time, todo: find a way to format/parse schedule
+    expirationTime = int(expirationTime.timestamp()) # convert to epoch, see https://stackoverflow.com/a/23004143/950462
 
     # Let's continue...
 
@@ -230,7 +232,10 @@ def tbank_recipe_salary_transfer():
     response1 = requests.post("https://api.ourfin.tech/integrations/tbank/transaction_history")
     response2 = requests.post("https://api.ourfin.tech/integrations/tbank/credit_transfer", json={
         "transactionId": eventId,
-        "narrative": "Calling from Composite API function"
+        "narrative": "Calling from Composite API function",
+        "accountFrom": accountFrom,
+        "accountTo": accountTo,
+        "amount": "0.8"
     })
     response3 = requests.post("https://api.ourfin.tech/recipes/create/lambda", json={
         "email": email,
