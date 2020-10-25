@@ -29,9 +29,54 @@ def get_user_info(token):
 # tbank salary create
 
 
-@app.route("/recipes/create", methods=['GET'])
+@app.route("/recipes/create/lambda", methods=['GET'])
 # @requires_auth
-def recipes_create():
+def recipes_create_lambda():
+    # find out who's calling this endpoint
+    # token = get_token_auth_header()
+    # user_info = get_user_info(token)
+
+    # then get POSTed form data
+    data = request.get_json()
+
+    email = data['email']
+    taskName = data['taskName']
+    accountFrom = data['accountFrom']
+    accountTo = data['accountTo']
+    amount = data['amount']
+
+    table = dynamodb.Table("scheduled_tasks")
+    response = table.update_item(
+        Key={
+            'email': data
+        },
+        UpdateExpression="set #task_name = :task_name, #data = :data, #creation = :creation, #expiration = :expiration",
+        ExpressionAttributeNames={
+            '#task_name': 'task_name',
+            '#data': 'data',
+            '#creation': 'creation_time',
+            '#expiration': 'expiration_time' # this has DynamoDB's TTL attribute
+        },
+        ExpressionAttributeValues={
+            ':task_name': taskName,
+            ':data': {
+                'from': accountFrom,
+                'to': accountTo,
+                'amount': amount,
+                'schedule': 'every month'
+            },
+            ':creation': int(time.time() // 60 * 60),
+            ':expiration': int(time.time() // 60 * 60) + 10
+        },
+        ReturnValues="ALL_NEW"
+    )
+    print(response)
+    return jsonify({"status": 200, "message": "OK"}), 200
+
+
+@app.route("/recipes/create/init", methods=['GET'])
+# @requires_auth
+def recipes_create_init():
     # find out who's calling this endpoint
     # token = get_token_auth_header()
     # user_info = get_user_info(token)

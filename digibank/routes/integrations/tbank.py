@@ -1,11 +1,13 @@
 import json
 import logging
 import os
+import time
 
 import boto3
 import jwt
 import requests
 from boto3.dynamodb.conditions import Key
+from dateutil.relativedelta import relativedelta
 from digibank import (ALGORITHMS, API_AUDIENCE, AUTH0_DOMAIN, AuthError, app,
                       get_token_auth_header, requires_auth, requires_scope)
 from dotenv import load_dotenv
@@ -78,9 +80,9 @@ def tbank_list_user_accounts():
 
     # post data to dynamodb
 
-@app.route("/integrations/tbank/transaction_history", methods=['GET'])
+@app.route("/integrations/tbank/transaction_history", methods=['POST'])
 # @requires_auth
-def accounts_sync():
+def tbank_transaction_history():
     # then get data
     data = request.get_json()
     # post data to dynamodb
@@ -131,7 +133,7 @@ def accounts_sync():
 
     return jsonify({"status": 401, "message": "Unknown error."}), 401
 
-@app.route("/integrations/tbank/credit_transfer", methods=['GET'])
+@app.route("/integrations/tbank/credit_transfer", methods=['POST'])
 # @requires_auth
 def tbank_credit_transfer():
     # find out who's calling this endpoint
@@ -149,8 +151,8 @@ def tbank_credit_transfer():
     accountFrom = "0000006624"
     accountTo = "0000006590"
     transactionAmount = "1.80"
-    transactionReferenceNumber = "TRF5000"
-    narrative = "Automatic Transfer via Smartly API"
+    transactionReferenceNumber = data['transactionId']
+    narrative = data['narrative']
     PIN = "123456"
     OTP = "999999"
 
@@ -194,7 +196,7 @@ def tbank_credit_transfer():
     # post data to dynamodb
 
 @app.route("/integrations/tbank/recipe_salary_transfer", methods=['POST'])
-def tbank_salary_transfer():
+def tbank_recipe_salary_transfer():
     # get posted JSON data from AWS Lambda
     data = request.get_json()
 
@@ -206,7 +208,7 @@ def tbank_salary_transfer():
     
     email = payload['email']['S']
     taskName = payload['task_name']['S']
-    creationTime = payload['creation_time']['N']
+    # creationTime = payload['creation_time']['N']
 
     taskData = payload['data']['M'] # to
     taskSchedule = taskData['schedule']['S']
@@ -214,16 +216,30 @@ def tbank_salary_transfer():
     accountFrom = taskData['from']['S']
     accountTo = taskData['to']['S']
 
-    print(taskSchedule, amount, accountFrom, accountTo, email, taskName)
-
-    expirationTime = creationTime # + wtv's in data
+    # print(taskSchedule, amount, accountFrom, accountTo, email, taskName)
+    creationTime = int(time.time())
+    expirationTime = creationTime + relativedelta(months=+1)
+    print(expirationTime)
 
     if taskName != "tbank.salary.transfer":
         return jsonify({"status": 403, "message": "Forbidden. Wrong task name provided."}), 403
 
     # Let's continue...
 
-    response = requests.post("http://localhost:5000/integrations/tbank/transaction_history")
+
+    response1 = requests.post("https://api.ourfin.tech/integrations/tbank/transaction_history")
+    response2 = requests.post("https://api.ourfin.tech/integrations/tbank/credit_transfer", json={
+        "transactionId": eventId,
+        "narrative": "Calling from Composite API function"
+    })
+    response3 = requests.post("https://api.ourfin.tech/recipes/create/lambda", json={
+        "email": email,
+        "taskName": taskName,
+        "accountFrom": accountFrom,
+        "accountTo": accountTo,
+        "amount": amount
+        # to add in schedule
+    })
 
     return jsonify({"status": 200, "message": "OK"}), 200
 
