@@ -223,11 +223,17 @@ def tbank_recipe_salary_transfer():
     # print(taskSchedule, amount, accountFrom, accountTo, email, taskName)
     creationTime = int(time.time())
 
-    expirationTime = datetime.now() + relativedelta(minutes=+5) # use relative delta time, todo: find a way to format/parse schedule
+    expirationTime = datetime.now() + relativedelta(minutes=+30) # use relative delta time, todo: find a way to format/parse schedule
     expirationTime = int(expirationTime.timestamp()) # convert to epoch, see https://stackoverflow.com/a/23004143/950462
 
     # Let's continue...
+
+    # First, find out transaction history
     response1 = requests.post("https://api.ourfin.tech/integrations/tbank/transaction_history")
+
+    # Look for keyword in transaction history's narrative
+
+    # If can find, do a transfer of x% of that transaction's amount
     response2 = requests.post("https://api.ourfin.tech/integrations/tbank/credit_transfer", json={
         "transactionId": eventId,
         "narrative": "Calling from Composite API function v2",
@@ -235,6 +241,8 @@ def tbank_recipe_salary_transfer():
         "accountTo": accountTo,
         "amount": amount
     })
+
+    # Finally, re-queue with the new expiration time (TTL) e.g. current time + 1 month
     response3 = requests.post("https://api.ourfin.tech/recipes/create/lambda", json={
         "email": email,
         "taskName": taskName,
@@ -247,11 +255,6 @@ def tbank_recipe_salary_transfer():
     })
 
     return jsonify({"status": 200, "message": "OK"}), 200
-
-    # if can login, we save it to our db, for now...
-    # (not v secure... but tBank doesn't support OAuth)
-
-    # post data to dynamodb
 
 # for unit testing only
 @app.route("/integrations/tbank/transaction_history/test", methods=['GET'])
