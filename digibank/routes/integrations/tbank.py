@@ -223,26 +223,26 @@ def tbank_recipe_salary_transfer():
     # print(taskSchedule, amount, accountFrom, accountTo, email, taskName)
     creationTime = int(time.time())
 
-    expirationTime = datetime.now() + relativedelta(months=+1) # use relative delta time, todo: find a way to format/parse schedule
+    expirationTime = datetime.now() + relativedelta(minutes=+5) # use relative delta time, todo: find a way to format/parse schedule
     expirationTime = int(expirationTime.timestamp()) # convert to epoch, see https://stackoverflow.com/a/23004143/950462
 
     # Let's continue...
-
-
     response1 = requests.post("https://api.ourfin.tech/integrations/tbank/transaction_history")
     response2 = requests.post("https://api.ourfin.tech/integrations/tbank/credit_transfer", json={
         "transactionId": eventId,
-        "narrative": "Calling from Composite API function",
+        "narrative": "Calling from Composite API function v2",
         "accountFrom": accountFrom,
         "accountTo": accountTo,
-        "amount": "0.8"
+        "amount": amount
     })
     response3 = requests.post("https://api.ourfin.tech/recipes/create/lambda", json={
         "email": email,
         "taskName": taskName,
         "accountFrom": accountFrom,
         "accountTo": accountTo,
-        "amount": amount
+        "amount": amount,
+        "creationTime": creationTime,
+        "expirationTime": expirationTime
         # to add in schedule
     })
 
@@ -252,3 +252,57 @@ def tbank_recipe_salary_transfer():
     # (not v secure... but tBank doesn't support OAuth)
 
     # post data to dynamodb
+
+# for unit testing only
+@app.route("/integrations/tbank/transaction_history/test", methods=['GET'])
+# @requires_auth
+def tbank_transaction_history_test():
+    # then get data
+    data = request.get_json()
+    # post data to dynamodb
+
+    # tbank
+    serviceName = "getTransactionHistory"
+    userID = "goijiajian"
+    PIN = "123456"
+    OTP = "999999"
+    # Content
+    accountID = "6624"
+    startDate = "2020-08-01 00:00:00"
+    endDate = "2020-12-31 00:00:00"
+    numRecordsPerPage = "15"
+    pageNum = "1"
+
+    header = {
+        "Header": {
+            "serviceName": serviceName,
+            "userID": userID,
+            "PIN": PIN,
+            "OTP": OTP
+        }
+    }
+    content = {
+        "Content": {
+            "accountID": accountID,
+            "startDate": startDate,
+            "endDate": endDate,
+            "numRecordsPerPage": numRecordsPerPage,
+            "pageNum": pageNum
+        }
+    }
+    final_url = "{0}?Header={1}&Content={2}".format(
+        url(), json.dumps(header), json.dumps(content))
+    print(final_url)
+
+    response = requests.post(final_url)
+    serviceResp = response.json()['Content']['ServiceResponse']
+    serviceRespHeader = serviceResp['ServiceRespHeader']
+    errorCode = serviceRespHeader['GlobalErrorID']
+
+    if errorCode == "010000":
+        logger.info("{} successfully requested for their Transaction History (Test Endpoint)".format(
+            "user")) # user_info['email']
+        transactions = serviceResp['CDMTransactionDetail']['transaction_Detail']
+        return jsonify({"status": 200, "data": transactions})
+
+    return jsonify({"status": 401, "message": "Unknown error."}), 401

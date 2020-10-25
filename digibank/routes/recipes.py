@@ -29,15 +29,13 @@ def get_user_info(token):
 # tbank salary create
 
 
-@app.route("/recipes/create/lambda", methods=['GET'])
+@app.route("/recipes/create/lambda", methods=['POST'])
 # @requires_auth
 def recipes_create_lambda():
-    # find out who's calling this endpoint
-    # token = get_token_auth_header()
-    # user_info = get_user_info(token)
-
-    # then get POSTed form data
+    # get POSTed form data
     data = request.get_json()
+
+    # TODO: auth check
 
     email = data['email']
     taskName = data['taskName']
@@ -65,8 +63,8 @@ def recipes_create_lambda():
                 'amount': amount,
                 'schedule': 'every month'
             },
-            ':creation': int(time.time() // 60 * 60),
-            ':expiration': int(time.time() // 60 * 60) + 10
+            ':creation': int(creationTime),
+            ':expiration': int(expirationTime)
         },
         ReturnValues="ALL_NEW"
     )
