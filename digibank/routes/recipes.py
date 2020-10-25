@@ -2,6 +2,10 @@ import json
 import logging
 import os
 import time
+import ast # for ddb types
+import decimal
+import pytz
+from datetime import datetime
 
 import boto3
 import jwt
@@ -18,6 +22,14 @@ logger = logging.getLogger(__name__)
 
 dynamodb = boto3.resource("dynamodb")
 
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, decimal.Decimal):
+            if o % 1 > 0:
+                return float(o)
+            else:
+                return int(o)
+        return super(DecimalEncoder, self).default(o)
 
 def get_user_info(token):
     response = requests.get(
@@ -74,12 +86,12 @@ def recipes_create_lambda():
     return jsonify({"status": 200, "message": "OK"}), 200
 
 
-@app.route("/recipes/create/init", methods=['GET'])
-# @requires_auth
-def recipes_create_init():
+@app.route("/recipes/create", methods=['POST'])
+@requires_auth
+def recipes_create():
     # find out who's calling this endpoint
-    # token = get_token_auth_header()
-    # user_info = get_user_info(token)
+    token = get_token_auth_header()
+    user_info = get_user_info(token)
 
     # then get POSTed form data
     data = request.get_json()
@@ -87,7 +99,7 @@ def recipes_create_init():
     table = dynamodb.Table("scheduled_tasks")
     response = table.update_item(
         Key={
-            'email': 'jiajiannn@gmail.com' #user_info['email']
+            'email': user_info['email']
         },
         UpdateExpression="set #task_name = :task_name, #data = :data, #creation = :creation, #expiration = :expiration",
         ExpressionAttributeNames={
@@ -99,15 +111,40 @@ def recipes_create_init():
         ExpressionAttributeValues={
             ':task_name': 'tbank.salary.transfer',
             ':data': {
-                'from': '6624',
-                'to': '6590',
-                'amount': '1.88',
+                'from': data['accountFrom'],
+                'to': data['accountTo'],
+                'amount': data['amount'],
                 'schedule': 'every month'
             },
             ':creation': int(time.time()),
-            ':expiration': int(time.time()) + 60
+            ':expiration': int(time.time()) + 3600*24*7 # 1 week
         },
         ReturnValues="ALL_NEW"
     )
     print(response)
     return jsonify({"status": 200, "message": "OK"}), 200
+
+@app.route("/recipes/list", methods=['POST'])
+@requires_auth
+def recipes_list():
+    # find out who's calling this endpoint
+    token = get_token_auth_header()
+    user_info = get_user_info(token)
+    email = user_info['email']
+
+    # then get POSTed form data
+    table = dynamodb.Table("scheduled_tasks")
+    response = table.query(
+        KeyConditionExpression=Key("email").eq(email)
+    )
+    data = []
+    tz = pytz.timezone("Asia/Singapore")
+
+    for i in response['Items']:
+        tmp = ast.literal_eval((json.dumps(i, cls=DecimalEncoder)))
+        tmp['creation_time'] = datetime.fromtimestamp(tmp['creation_time'], tz).isoformat()
+        tmp['expiration_time'] = datetime.fromtimestamp(tmp['expiration_time'], tz).isoformat()
+
+        data.append(tmp)
+    
+    return jsonify({"status": 200, "data": data}), 200
