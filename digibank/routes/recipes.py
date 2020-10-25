@@ -46,7 +46,7 @@ def recipes_create_lambda():
     table = dynamodb.Table("scheduled_tasks")
     response = table.update_item(
         Key={
-            'email': data
+            'email': email
         },
         UpdateExpression="set #task_name = :task_name, #data = :data, #creation = :creation, #expiration = :expiration",
         ExpressionAttributeNames={
