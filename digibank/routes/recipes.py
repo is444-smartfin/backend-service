@@ -52,7 +52,7 @@ def recipes_create():
             '#expiration': 'expiration_time' # this has DynamoDB's TTL attribute
         },
         ExpressionAttributeValues={
-            ':task_name': 'tbank.salary.credit',
+            ':task_name': 'tbank.salary.transfer',
             ':data': {
                 'from': '6624',
                 'to': '6590',

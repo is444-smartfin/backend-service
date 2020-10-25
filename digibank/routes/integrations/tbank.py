@@ -192,3 +192,42 @@ def tbank_credit_transfer():
     # (not v secure... but tBank doesn't support OAuth)
 
     # post data to dynamodb
+
+@app.route("/integrations/tbank/recipe_salary_transfer", methods=['POST'])
+def tbank_salary_transfer():
+    # get posted JSON data from AWS Lambda
+    data = request.get_json()
+
+    if data['apiKey'] != "randomKey":
+        return jsonify({"status": 401, "message": "Unauthorised."}), 401
+
+    eventId = data['eventId']
+    payload = data['payload']
+    
+    email = payload['email']['S']
+    taskName = payload['task_name']['S']
+    creationTime = payload['creation_time']['N']
+
+    taskData = payload['data']['M'] # to
+    taskSchedule = taskData['schedule']['S']
+    amount = taskData['amount']['S']
+    accountFrom = taskData['from']['S']
+    accountTo = taskData['to']['S']
+
+    print(taskSchedule, amount, accountFrom, accountTo, email, taskName)
+
+    expirationTime = creationTime # + wtv's in data
+
+    if taskName != "tbank.salary.credit":
+        return jsonify({"status": 403, "message": "Forbidden. Wrong task name provided."}), 403
+
+    # Let's continue...
+
+    response = requests.post("http://localhost:5000/integrations/tbank/transaction_history")
+
+    return jsonify({"status": 200, "message": "OK"}), 200
+
+    # if can login, we save it to our db, for now...
+    # (not v secure... but tBank doesn't support OAuth)
+
+    # post data to dynamodb

@@ -170,7 +170,7 @@ def accounts_link():
         print(response)
         print("ok")
 
-        return jsonify({"status": 200, "message": "Your tBank account is now linked to (idk what we're called haha)."})
+        return jsonify({"status": 200, "message": "Your tBank account is now linked to APP_NAME."})
 
     elif errorCode == "010041":
         logger.error("OTP has expired. You will receiving a SMS")
