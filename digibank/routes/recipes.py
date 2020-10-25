@@ -104,8 +104,8 @@ def recipes_create_init():
                 'amount': '1.88',
                 'schedule': 'every month'
             },
-            ':creation': int(time.time() // 60 * 60),
-            ':expiration': int(time.time() // 60 * 60) + 10
+            ':creation': int(time.time()),
+            ':expiration': int(time.time()) + 60
         },
         ReturnValues="ALL_NEW"
     )
