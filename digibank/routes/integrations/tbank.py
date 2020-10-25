@@ -218,7 +218,7 @@ def tbank_salary_transfer():
 
     expirationTime = creationTime # + wtv's in data
 
-    if taskName != "tbank.salary.credit":
+    if taskName != "tbank.salary.transfer":
         return jsonify({"status": 403, "message": "Forbidden. Wrong task name provided."}), 403
 
     # Let's continue...
