@@ -88,7 +88,7 @@ def accounts_mfa():
     if errorCode == "010000":
         logger.info("{} successfully requested for tBank MFA".format(
             user_info['email']))
-        return jsonify({"status": 200, "message": "Your OTP has been sent to the mobile number registered to your tBank account."})
+        return jsonify({"status": 200, "message": "Your OTP has been sent to the mobile number registered to your bank account."})
 
     elif errorCode == "010041":
         logger.error("{} triggered some unknown error in tBank MFA".format(
@@ -103,7 +103,6 @@ def accounts_mfa():
     # post data to dynamodb
 
 
-# Currently supports tBank only
 @app.route("/accounts/link", methods=['POST'])
 @requires_auth
 def accounts_link():
@@ -119,6 +118,7 @@ def accounts_link():
     userID = data['userId']
     PIN = data['pin']
     OTP = data['otp']
+    bank = data['bank']  # get bank name e.g. tbank, ocbc, dbs
 
     header = {
         "Header": {
@@ -141,28 +141,28 @@ def accounts_link():
         LoginOTPAuthenticateResponseObj = response.json(
         )['Content']['ServiceResponse']['Login_OTP_Authenticate-Response']
 
-        logger.info("{} successfully linked their tBank account. customerId {}, bankId {}".format(
-            user_info['email'], LoginOTPAuthenticateResponseObj['CustomerID'], LoginOTPAuthenticateResponseObj['BankID']))
+        logger.info("{} successfully linked their bank account. customerId {}, bankId {}, bank {}".format(
+            user_info['email'], LoginOTPAuthenticateResponseObj['CustomerID'], LoginOTPAuthenticateResponseObj['BankID'], bank))
 
         # if can login, we save it to our db, for now...
         # (not v secure... but tBank doesn't support OAuth)
 
         # post data to dynamodb
         table = dynamodb.Table("users")
+        # TODO add multiple
         response = table.update_item(
             Key={
                 'email': user_info['email']
             },
-            UpdateExpression="set #accounts = :account_info",
+            UpdateExpression="set #accounts.#bankName = :account_info",
             ExpressionAttributeNames={
-                '#accounts': 'accounts'
+                '#accounts': 'accounts',
+                '#bankName': bank
             },
             ExpressionAttributeValues={
                 ':account_info': {
-                    "tBank": {
-                        "userId": userID,
-                        "pin": PIN
-                    }
+                    "userId": userID,
+                    "pin": PIN
                 },
             },
             ReturnValues="UPDATED_NEW"
@@ -170,11 +170,13 @@ def accounts_link():
         print(response)
         print("ok")
 
-        return jsonify({"status": 200, "message": "Your tBank account is now linked to APP_NAME."})
+        return jsonify({"status": 200, "message": "Your bank account is now linked to APP_NAME."})
 
     elif errorCode == "010041":
         logger.error("OTP has expired. You will receiving a SMS")
 
+    logger.info("{} failed to linked their bank account. bank {}".format(
+        user_info['email'], bank))
     return jsonify({"status": 401, "message": "Invalid user ID, PIN or OTP."}), 401
 
 
