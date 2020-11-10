@@ -62,17 +62,16 @@ def recipes_create_lambda():
     table = dynamodb.Table("scheduled_tasks")
     response = table.update_item(
         Key={
-            'email': email
+            'email': email,
+            'task_name': taskName,
         },
-        UpdateExpression="set #task_name = :task_name, #data = :data, #creation = :creation, #expiration = :expiration",
+        UpdateExpression="set #data = :data, #creation = :creation, #expiration = :expiration",
         ExpressionAttributeNames={
-            '#task_name': 'task_name',
             '#data': 'data',
             '#creation': 'creation_time',
             '#expiration': 'expiration_time'  # this has DynamoDB's TTL attribute
         },
         ExpressionAttributeValues={
-            ':task_name': taskName,
             ':data': {
                 'from': accountFrom,
                 'to': accountTo,
