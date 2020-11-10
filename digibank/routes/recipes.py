@@ -53,37 +53,66 @@ def recipes_create_lambda():
 
     email = data['email']
     taskName = data['taskName']
-    accountFrom = data['accountFrom']
-    accountTo = data['accountTo']
-    amount = data['amount']
-    creationTime = data['creationTime']
-    expirationTime = data['expirationTime']
 
-    table = dynamodb.Table("scheduled_tasks")
-    response = table.update_item(
-        Key={
-            'email': email,
-            'task_name': taskName,
-        },
-        UpdateExpression="set #data = :data, #creation = :creation, #expiration = :expiration",
-        ExpressionAttributeNames={
-            '#data': 'data',
-            '#creation': 'creation_time',
-            '#expiration': 'expiration_time'  # this has DynamoDB's TTL attribute
-        },
-        ExpressionAttributeValues={
-            ':data': {
-                'from': accountFrom,
-                'to': accountTo,
-                'amount': amount,
-                'schedule': 'every month'
+    if taskName == "tbank.salary.transfer":
+        accountFrom = data['accountFrom']
+        accountTo = data['accountTo']
+        amount = data['amount']
+        creationTime = data['creationTime']
+        expirationTime = data['expirationTime']
+
+        table = dynamodb.Table("scheduled_tasks")
+        response = table.update_item(
+            Key={
+                'email': email,
+                'task_name': taskName,
             },
-            ':creation': int(creationTime),
-            ':expiration': int(expirationTime)
-        },
-        ReturnValues="ALL_NEW"
-    )
-    print(response)
+            UpdateExpression="set #data = :data, #creation = :creation, #expiration = :expiration",
+            ExpressionAttributeNames={
+                '#data': 'data',
+                '#creation': 'creation_time',
+                '#expiration': 'expiration_time'  # this has DynamoDB's TTL attribute
+            },
+            ExpressionAttributeValues={
+                ':data': {
+                    'from': accountFrom,
+                    'to': accountTo,
+                    'amount': amount,
+                    'schedule': 'every month'
+                },
+                ':creation': int(creationTime),
+                ':expiration': int(expirationTime)
+            },
+            ReturnValues="ALL_NEW"
+        )
+        print(response)
+    elif taskName == "smartfin.aggregated_email":
+        creationTime = data['creationTime']
+        expirationTime = data['expirationTime']
+
+        table = dynamodb.Table("scheduled_tasks")
+        response = table.update_item(
+            Key={
+                'email': email,
+                'task_name': taskName,
+            },
+            UpdateExpression="set #data = :data, #creation = :creation, #expiration = :expiration",
+            ExpressionAttributeNames={
+                '#data': 'data',
+                '#creation': 'creation_time',
+                '#expiration': 'expiration_time'  # this has DynamoDB's TTL attribute
+            },
+            ExpressionAttributeValues={
+                ':data': {
+                    'schedule': 'every week'
+                },
+                ':creation': int(creationTime),
+                ':expiration': int(expirationTime)
+            },
+            ReturnValues="ALL_NEW"
+        )
+        print(response)
+
     return jsonify({"status": 200, "message": "OK"}), 200
 
 
