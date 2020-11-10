@@ -86,12 +86,12 @@ def accounts_mfa():
     errorCode = serviceRespHeader['GlobalErrorID']
 
     if errorCode == "010000":
-        logger.info("{} successfully requested for tBank MFA".format(
+        logger.info("{} successfully requested for Multi-Factor Authentication".format(
             user_info['email']))
         return jsonify({"status": 200, "message": "Your OTP has been sent to the mobile number registered to your bank account."})
 
     elif errorCode == "010041":
-        logger.error("{} triggered some unknown error in tBank MFA".format(
+        logger.error("{} triggered some unknown error in Multi-Factor Authentication".format(
             user_info['email']))
         return jsonify({"status": 401, "message": "Idk what error is this"}), 401
 

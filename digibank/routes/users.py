@@ -54,7 +54,8 @@ def onboarding():
     response = table.put_item(
         Item={
             'email': email,
-            'full_name': data['name']
+            'full_name': data['name'],
+            'accounts': {},
         }
     )
     logger.info(
