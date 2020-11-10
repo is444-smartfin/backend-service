@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import time
-import ast # for ddb types
+import ast  # for ddb types
 import decimal
 import pytz
 from datetime import datetime
@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 dynamodb = boto3.resource("dynamodb")
 
+
 class DecimalEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, decimal.Decimal):
@@ -30,6 +31,7 @@ class DecimalEncoder(json.JSONEncoder):
             else:
                 return int(o)
         return super(DecimalEncoder, self).default(o)
+
 
 def get_user_info(token):
     response = requests.get(
@@ -67,7 +69,7 @@ def recipes_create_lambda():
             '#task_name': 'task_name',
             '#data': 'data',
             '#creation': 'creation_time',
-            '#expiration': 'expiration_time' # this has DynamoDB's TTL attribute
+            '#expiration': 'expiration_time'  # this has DynamoDB's TTL attribute
         },
         ExpressionAttributeValues={
             ':task_name': taskName,
@@ -95,34 +97,58 @@ def recipes_create():
 
     # then get POSTed form data
     data = request.get_json()
+    taskName = data['taskName']
 
     table = dynamodb.Table("scheduled_tasks")
-    response = table.update_item(
-        Key={
-            'email': user_info['email']
-        },
-        UpdateExpression="set #task_name = :task_name, #data = :data, #creation = :creation, #expiration = :expiration",
-        ExpressionAttributeNames={
-            '#task_name': 'task_name',
-            '#data': 'data',
-            '#creation': 'creation_time',
-            '#expiration': 'expiration_time' # this has DynamoDB's TTL attribute
-        },
-        ExpressionAttributeValues={
-            ':task_name': 'tbank.salary.transfer',
-            ':data': {
-                'from': data['accountFrom'],
-                'to': data['accountTo'],
-                'amount': data['amount'],
-                'schedule': 'every month'
+
+    if taskName == "tbank.salary.transfer":
+        response = table.update_item(
+            Key={
+                'email': user_info['email'],
+                'task_name': 'tbank.salary.transfer',
             },
-            ':creation': int(time.time()),
-            ':expiration': int(time.time()) + 3600*24*7 # 1 week
-        },
-        ReturnValues="ALL_NEW"
-    )
+            UpdateExpression="set #data = :data, #creation = :creation, #expiration = :expiration",
+            ExpressionAttributeNames={
+                '#data': 'data',
+                '#creation': 'creation_time',
+                '#expiration': 'expiration_time'  # this has DynamoDB's TTL attribute
+            },
+            ExpressionAttributeValues={
+                ':data': {
+                    'from': data['accountFrom'],
+                    'to': data['accountTo'],
+                    'amount': data['amount'],
+                    'schedule': 'every month'
+                },
+                ':creation': int(time.time()),
+                ':expiration': int(time.time()) + 60*5  # 1 week is 3600*24*7
+            },
+            ReturnValues="ALL_NEW"
+        )
+    elif taskName == "smartfin.aggregated_email":
+        response = table.update_item(
+            Key={
+                'email': user_info['email'],
+                'task_name': 'smartfin.aggregated_email',
+            },
+            UpdateExpression="set #data = :data, #creation = :creation, #expiration = :expiration",
+            ExpressionAttributeNames={
+                '#data': 'data',
+                '#creation': 'creation_time',
+                '#expiration': 'expiration_time'  # this has DynamoDB's TTL attribute
+            },
+            ExpressionAttributeValues={
+                ':data': {
+                    'schedule': 'every week'
+                },
+                ':creation': int(time.time()),
+                ':expiration': int(time.time()) + 60*5  # 1 week is 3600*24*7
+            },
+            ReturnValues="ALL_NEW"
+        )
     print(response)
     return jsonify({"status": 200, "message": "OK"}), 200
+
 
 @app.route("/recipes/list", methods=['POST'])
 @requires_auth
@@ -142,9 +168,11 @@ def recipes_list():
 
     for i in response['Items']:
         tmp = ast.literal_eval((json.dumps(i, cls=DecimalEncoder)))
-        tmp['creation_time'] = datetime.fromtimestamp(tmp['creation_time'], tz).isoformat()
-        tmp['expiration_time'] = datetime.fromtimestamp(tmp['expiration_time'], tz).isoformat()
+        tmp['creation_time'] = datetime.fromtimestamp(
+            tmp['creation_time'], tz).isoformat()
+        tmp['expiration_time'] = datetime.fromtimestamp(
+            tmp['expiration_time'], tz).isoformat()
 
         data.append(tmp)
-    
+
     return jsonify({"status": 200, "data": data}), 200

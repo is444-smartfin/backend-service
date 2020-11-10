@@ -236,7 +236,7 @@ def tbank_recipe_salary_transfer():
     # If can find, do a transfer of x% of that transaction's amount
     response2 = requests.post("https://api.ourfin.tech/integrations/tbank/credit_transfer", json={
         "transactionId": eventId,
-        "narrative": "Calling from Composite API function v2",
+        "narrative": "Automated transfer by SmartFIN Recipe.",
         "accountFrom": accountFrom,
         "accountTo": accountTo,
         "amount": amount
