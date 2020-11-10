@@ -120,7 +120,7 @@ def recipes_create_lambda():
     table2.update_item(
             Key={
                 'email': email,
-                'id': uuid.uuid4(),
+                'id': str(uuid.uuid4()),
             },
             UpdateExpression="set #data = :data, #runTime = :runTime",
             ExpressionAttributeNames={
