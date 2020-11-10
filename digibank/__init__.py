@@ -126,3 +126,4 @@ import digibank.routes.users
 import digibank.routes.accounts
 import digibank.routes.recipes
 import digibank.routes.integrations.tbank
+import digibank.routes.integrations.smartfin
