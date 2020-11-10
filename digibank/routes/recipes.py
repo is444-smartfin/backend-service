@@ -5,6 +5,7 @@ import time
 import ast  # for ddb types
 import decimal
 import pytz
+import uuid
 from datetime import datetime
 
 import boto3
@@ -112,6 +113,28 @@ def recipes_create_lambda():
             ReturnValues="ALL_NEW"
         )
         print(response)
+
+
+    # Keep track of task run history
+    table2 = dynamodb.Table("scheduled_tasks_history")
+    table2.update_item(
+            Key={
+                'email': email,
+                'id': uuid.uuid4(),
+            },
+            UpdateExpression="set #data = :data, #runTime = :runTime",
+            ExpressionAttributeNames={
+                '#data': 'data',
+                '#runTime': 'run_time',
+            },
+            ExpressionAttributeValues={
+                ':data': {
+                    'lambda_info': 'TODO'
+                },
+                ':runTime': int(creationTime),
+            },
+            ReturnValues="ALL_NEW"
+        )
 
     return jsonify({"status": 200, "message": "OK"}), 200
 
