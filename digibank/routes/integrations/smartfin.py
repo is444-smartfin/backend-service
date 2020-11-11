@@ -169,6 +169,8 @@ def smartfin_recipe_aggregated_email():
 
     # Look for keyword in transaction history's narrative
 
+    # TODO: gather ALL data above, then email
+
     # Finally, re-queue with the new expiration time (TTL) e.g. current time + 1 month
     response3 = requests.post("https://api.ourfin.tech/recipes/create/lambda", json={
         "email": email,

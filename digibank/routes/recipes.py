@@ -129,7 +129,7 @@ def recipes_create_lambda():
             },
             ExpressionAttributeValues={
                 ':data': {
-                    'lambda_info': 'TODO'
+                    'task_name': taskName
                 },
                 ':runTime': int(creationTime),
             },
