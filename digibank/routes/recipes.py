@@ -86,7 +86,7 @@ def recipes_create_lambda():
             },
             ReturnValues="ALL_NEW"
         )
-        print(response)
+        logger.info("{} completed task {}".format(email, taskName))
     elif taskName == "smartfin.aggregated_email":
         creationTime = data['creationTime']
         expirationTime = data['expirationTime']
@@ -112,7 +112,8 @@ def recipes_create_lambda():
             },
             ReturnValues="ALL_NEW"
         )
-        print(response)
+        logger.info("{} completed task {}".format(email, taskName))
+
 
 
     # Keep track of task run history
@@ -135,6 +136,7 @@ def recipes_create_lambda():
             },
             ReturnValues="ALL_NEW"
         )
+    # logger.info("{} completed task {}".format(email, taskName))
 
     return jsonify({"status": 200, "message": "OK"}), 200
 
