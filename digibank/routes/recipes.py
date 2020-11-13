@@ -87,6 +87,8 @@ def recipes_create_lambda():
             ReturnValues="ALL_NEW"
         )
         logger.info("{} completed task {}".format(email, taskName))
+        logger.info("{} DynamoDB response was {}".format(email, response))
+
     elif taskName == "smartfin.aggregated_email":
         creationTime = data['creationTime']
         expirationTime = data['expirationTime']
@@ -113,8 +115,7 @@ def recipes_create_lambda():
             ReturnValues="ALL_NEW"
         )
         logger.info("{} completed task {}".format(email, taskName))
-
-
+        logger.info("{} DynamoDB response was {}".format(email, response))
 
     # Keep track of task run history
     table2 = dynamodb.Table("scheduled_tasks_history")
@@ -136,7 +137,7 @@ def recipes_create_lambda():
             },
             ReturnValues="ALL_NEW"
         )
-    # logger.info("{} completed task {}".format(email, taskName))
+    logger.info("{} logged task {} into scheduled_tasks_history".format(email, taskName))
 
     return jsonify({"status": 200, "message": "OK"}), 200
 
