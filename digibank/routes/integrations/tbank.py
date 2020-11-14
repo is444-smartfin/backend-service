@@ -44,11 +44,23 @@ def tbank_list_user_accounts():
 
     # then get POSTed form data
     data = request.get_json()
+    email = user_info['email']
 
-    # request for OTP
+    # Step 1: lookup database for tBank login details first
+    table = dynamodb.Table("users")
+    response = table.query(
+        KeyConditionExpression=Key("email").eq(email)
+    )
+    accounts = response['Items'][0]['accounts']
+    
+    # Step 1a: check if tbank exists first
+    if "tbank" not in accounts:
+        return jsonify({"status": 404, "message": "No tBank account was found for the current user."}), 404
+
+    # Step 2: prepare login details
     serviceName = "getCustomerAccounts"
-    userID = "goijiajian"
-    PIN = "123456"
+    userID = accounts['tbank']['userId']
+    PIN = accounts['tbank']['pin']
     OTP = "999999"
 
     header = {
@@ -76,16 +88,12 @@ def tbank_list_user_accounts():
 
     return jsonify({"status": 401, "message": "Unknown error."}), 401
 
-    # if can login, we save it to our db, for now...
-    # (not v secure... but tBank doesn't support OAuth)
 
-    # post data to dynamodb
-
-@app.route("/integrations/tbank/transaction_history", methods=['POST'])
+@app.route("/integrations/tbank/transaction_history", methods=['GET', 'POST'])
 # @requires_auth
 def tbank_transaction_history():
     # then get data
-    data = request.get_json()
+    data = request.get_json()    
     # post data to dynamodb
 
     # tbank
@@ -94,9 +102,9 @@ def tbank_transaction_history():
     PIN = "123456"
     OTP = "999999"
     # Content
-    accountID = "6624"
-    startDate = "2020-08-01 00:00:00"
-    endDate = "2020-12-30 00:00:00"
+    accountID = "6624" # data['accountId']
+    startDate = "2020-08-01T00:00:00"
+    endDate = "2020-12-30T00:00:00"
     numRecordsPerPage = "15"
     pageNum = "1"
 
@@ -128,11 +136,12 @@ def tbank_transaction_history():
 
     if errorCode == "010000":
         logger.info("{} successfully requested for their Transaction History".format(
-            "user")) # user_info['email']
+            "user"))  # user_info['email']
         transactions = serviceResp['CDMTransactionDetail']['transaction_Detail']
         return jsonify({"status": 200, "data": transactions})
 
     return jsonify({"status": 401, "message": "Unknown error."}), 401
+
 
 @app.route("/integrations/tbank/credit_transfer", methods=['POST'])
 # @requires_auth
@@ -148,7 +157,7 @@ def tbank_credit_transfer():
 
     # request for OTP
     serviceName = "creditTransfer"
-    userID = "goijiajian" # get from DynamoDB using
+    userID = "goijiajian"  # get from DynamoDB using
     accountFrom = data['accountFrom']
     accountTo = data['accountTo']
     transactionAmount = data['amount']
@@ -176,7 +185,8 @@ def tbank_credit_transfer():
         }
     }
 
-    final_url = "{0}?Header={1}&Content={2}".format(url(), json.dumps(header), json.dumps(content))
+    final_url = "{0}?Header={1}&Content={2}".format(
+        url(), json.dumps(header), json.dumps(content))
     response = requests.post(final_url)
     print(final_url)
 
@@ -186,7 +196,7 @@ def tbank_credit_transfer():
 
     if errorCode == "010000":
         logger.info("{} successfully requested for their Accounts List".format(
-            "user")) # user_info['email']
+            "user"))  # user_info['email']
         return jsonify({"status": 200, "data": serviceResp})
 
     return jsonify({"status": 401, "message": "Unhandled error."}), 401
@@ -195,6 +205,7 @@ def tbank_credit_transfer():
     # (not v secure... but tBank doesn't support OAuth)
 
     # post data to dynamodb
+
 
 @app.route("/integrations/tbank/recipe_salary_transfer", methods=['POST'])
 def tbank_recipe_salary_transfer():
@@ -206,7 +217,7 @@ def tbank_recipe_salary_transfer():
 
     eventId = data['eventId']
     payload = data['payload']
-    
+
     email = payload['email']['S']
     taskName = payload['task_name']['S']
 
@@ -214,7 +225,7 @@ def tbank_recipe_salary_transfer():
     if taskName != "tbank.salary.transfer":
         return jsonify({"status": 403, "message": "Forbidden. Wrong task name provided."}), 403
 
-    taskData = payload['data']['M'] # to
+    taskData = payload['data']['M']  # to
     taskSchedule = taskData['schedule']['S']
     amount = taskData['amount']['S']
     accountFrom = taskData['from']['S']
@@ -223,11 +234,13 @@ def tbank_recipe_salary_transfer():
     # print(taskSchedule, amount, accountFrom, accountTo, email, taskName)
     creationTime = int(time.time())
 
-    expirationTime = datetime.now() + relativedelta(minutes=+1) # use relative delta time, todo: find a way to format/parse schedule
-    expirationTime = int(expirationTime.timestamp()) # convert to epoch, see https://stackoverflow.com/a/23004143/950462
+    # use relative delta time, todo: find a way to format/parse schedule
+    expirationTime = datetime.now() + relativedelta(minutes=+1)
+    # convert to epoch, see https://stackoverflow.com/a/23004143/950462
+    expirationTime = int(expirationTime.timestamp())
 
     # Let's continue...
-        # Finally, re-queue with the new expiration time (TTL) e.g. current time + 1 month
+    # Finally, re-queue with the new expiration time (TTL) e.g. current time + 1 month
     response1 = requests.post("https://api.ourfin.tech/recipes/create/lambda", json={
         "email": email,
         "taskName": taskName,
@@ -240,7 +253,8 @@ def tbank_recipe_salary_transfer():
         "eventId": eventId,
         # to add in schedule
     })
-    logger.info("{} requeued recurring DynamoDB TTL task through Lambda for {} {}".format(email, taskName, response1))
+    logger.info("{} requeued recurring DynamoDB TTL task through Lambda for {} {}".format(
+        email, taskName, response1))
 
     # First, find out transaction history
     # response2 = requests.post("https://api.ourfin.tech/integrations/tbank/transaction_history")
@@ -255,12 +269,14 @@ def tbank_recipe_salary_transfer():
         "accountTo": accountTo,
         "amount": amount
     })
-    logger.info("{} successfully completed {} {}".format(email, taskName, response2))
-
+    logger.info("{} successfully completed {} {}".format(
+        email, taskName, response2))
 
     return jsonify({"status": 200, "message": "OK"}), 200
 
 # for unit testing only
+
+
 @app.route("/integrations/tbank/transaction_history/test", methods=['GET'])
 # @requires_auth
 def tbank_transaction_history_test():
@@ -308,7 +324,7 @@ def tbank_transaction_history_test():
 
     if errorCode == "010000":
         logger.info("{} successfully requested for their Transaction History (Test Endpoint)".format(
-            "user")) # user_info['email']
+            "user"))  # user_info['email']
         transactions = serviceResp['CDMTransactionDetail']['transaction_Detail']
         return jsonify({"status": 200, "data": transactions})
 
