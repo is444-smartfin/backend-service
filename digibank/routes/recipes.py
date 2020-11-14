@@ -54,7 +54,7 @@ def recipes_create_lambda():
 
     email = data['email']
     taskName = data['taskName']
-    # eventId = data['eventId']
+    eventId = data['eventId']
 
     if taskName == "tbank.salary.transfer":
         accountFrom = data['accountFrom']
@@ -133,7 +133,7 @@ def recipes_create_lambda():
             ExpressionAttributeValues={
                 ':data': {
                     'task_name': taskName,
-                    # 'correlation_id': eventId,
+                    'correlation_id': eventId,
                 },
                 ':runTime': int(creationTime),
             },
