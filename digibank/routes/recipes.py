@@ -87,7 +87,7 @@ def recipes_create_lambda():
             },
             ReturnValues="ALL_NEW"
         )
-        logger.info("{} completed task {}".format(email, taskName))
+        logger.info("{} completed task {} with AWS Lambda correlation ID {}".format(email, taskName, eventId))
         logger.info("{} DynamoDB response was {}".format(email, response))
 
     elif taskName == "smartfin.aggregated_email":
@@ -115,7 +115,7 @@ def recipes_create_lambda():
             },
             ReturnValues="ALL_NEW"
         )
-        logger.info("{} completed task {}".format(email, taskName))
+        logger.info("{} completed task {} with AWS Lambda correlation ID {}".format(email, taskName, eventId))
         logger.info("{} DynamoDB response was {}".format(email, response))
 
     # Keep track of task run history
