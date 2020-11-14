@@ -52,7 +52,7 @@ def tbank_list_user_accounts():
         KeyConditionExpression=Key("email").eq(email)
     )
     accounts = response['Items'][0]['accounts']
-    
+
     # Step 1a: check if tbank exists first
     if "tbank" not in accounts:
         return jsonify({"status": 404, "message": "No tBank account was found for the current user."}), 404
@@ -93,7 +93,7 @@ def tbank_list_user_accounts():
 # @requires_auth
 def tbank_transaction_history():
     # then get data
-    data = request.get_json()    
+    data = request.get_json()
     # post data to dynamodb
 
     # tbank
@@ -102,7 +102,7 @@ def tbank_transaction_history():
     PIN = "123456"
     OTP = "999999"
     # Content
-    accountID = "6624" # data['accountId']
+    accountID = "6624"  # data['accountId']
     startDate = "2020-08-01T00:00:00"
     endDate = "2020-12-30T00:00:00"
     numRecordsPerPage = "15"
@@ -152,19 +152,30 @@ def tbank_credit_transfer():
 
     # then get POSTed form data
     data = request.get_json()
+    email = data['email'] # posted from recipe API endpoint
 
-    # then get tBank account deets from DynamoDB
+    # Step 1: get tBank account deets from DynamoDB
+    table = dynamodb.Table("accounts")
+    response = table.query(
+        KeyConditionExpression=Key("email").eq(email)
+    )
+    logger.info("{} triggered credit transfer, found tBank UserID".format(email))
+    accounts = response['Items'][0]['accounts']
 
-    # request for OTP
+    # Step 1a: check if tbank exists first
+    if "tbank" not in accounts:
+        return jsonify({"status": 404, "message": "No tBank account was found for the current user."}), 404
+
+    # Step 2: prepare creditTransfer params
     serviceName = "creditTransfer"
-    userID = "goijiajian"  # get from DynamoDB using
+    userID = accounts['tbank']['userId'] # get from DynamoDB using
+    PIN = accounts['tbank']['pin']
+    OTP = "999999"
     accountFrom = data['accountFrom']
     accountTo = data['accountTo']
     transactionAmount = data['amount']
     transactionReferenceNumber = data['transactionId']
     narrative = data['narrative']
-    PIN = "123456"
-    OTP = "999999"
 
     header = {
         "Header": {
@@ -264,10 +275,11 @@ def tbank_recipe_salary_transfer():
     # If can find, do a transfer of x% of that transaction's amount
     response2 = requests.post("https://api.ourfin.tech/integrations/tbank/credit_transfer", json={
         "transactionId": eventId,
+        "email": email,
         "narrative": "Automated transfer by SmartFIN Recipe.",
         "accountFrom": accountFrom,
         "accountTo": accountTo,
-        "amount": amount
+        "amount": amount,
     })
     logger.info("{} successfully completed {} {}".format(
         email, taskName, response2))
