@@ -259,3 +259,30 @@ def recipes_run_history():
     data = sorted(data, key=lambda k: k['run_time'], reverse=True)
 
     return jsonify({"status": 200, "data": data}), 200
+
+@app.route("/recipes/requirements_satisfied", methods=['GET'])
+@requires_auth
+def recipes_requirements_satisfied():
+    # find out who's calling this endpoint
+    token = get_token_auth_header()
+    user_info = get_user_info(token)
+    email = user_info['email']
+
+    # then get POSTed form data
+    table = dynamodb.Table("users")
+    response = table.query(
+        KeyConditionExpression=Key("email").eq(email)
+    )
+
+    data = {
+        "tbank": False,
+        "ocbc": False,
+    }
+    accounts = response['Items'][0]['accounts']
+
+    if "tbank" in accounts:
+        data['tbank'] = True
+    if "ocbc" in accounts:
+        data['ocbc'] = True
+
+    return jsonify({"status": 200, "data": data}), 200
