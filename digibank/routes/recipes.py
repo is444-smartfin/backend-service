@@ -54,6 +54,7 @@ def recipes_create_lambda():
 
     email = data['email']
     taskName = data['taskName']
+    eventId = data['eventId']
 
     if taskName == "tbank.salary.transfer":
         accountFrom = data['accountFrom']
@@ -131,7 +132,8 @@ def recipes_create_lambda():
             },
             ExpressionAttributeValues={
                 ':data': {
-                    'task_name': taskName
+                    'task_name': taskName,
+                    'correlation_id': eventId,
                 },
                 ':runTime': int(creationTime),
             },
@@ -228,5 +230,32 @@ def recipes_list():
             tmp['expiration_time'], tz).isoformat()
 
         data.append(tmp)
+
+    return jsonify({"status": 200, "data": data}), 200
+
+@app.route("/recipes/run_history", methods=['POST'])
+@requires_auth
+def recipes_run_history():
+    # find out who's calling this endpoint
+    token = get_token_auth_header()
+    user_info = get_user_info(token)
+    email = user_info['email']
+
+    # then get POSTed form data
+    table = dynamodb.Table("scheduled_tasks_history")
+    response = table.query(
+        KeyConditionExpression=Key("email").eq(email)
+    )
+    data = []
+    tz = pytz.timezone("Asia/Singapore")
+
+    for i in response['Items']:
+        tmp = ast.literal_eval((json.dumps(i, cls=DecimalEncoder)))
+        tmp['run_time'] = datetime.fromtimestamp(
+            tmp['run_time'], tz).isoformat()
+
+        data.append(tmp)
+
+    data = sorted(data, key=lambda k: k['run_time'], reverse=True)
 
     return jsonify({"status": 200, "data": data}), 200

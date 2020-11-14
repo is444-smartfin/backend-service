@@ -1,3 +1,4 @@
+aniso8601==7.0.0
 astroid==2.4.2
 atomicwrites==1.4.0
 attrs==20.2.0
@@ -23,6 +24,7 @@ MarkupSafe==1.1.1
 mccabe==0.6.1
 packaging==20.4
 pluggy==0.13.1
+promise==2.3
 py==1.9.0
 pyasn1==0.4.8
 pycodestyle==2.6.0
@@ -36,6 +38,7 @@ python-jose==3.2.0
 pytz==2020.1
 requests==2.24.0
 rsa==4.6
+Rx==1.6.1
 s3transfer==0.3.3
 six==1.15.0
 toml==0.10.1

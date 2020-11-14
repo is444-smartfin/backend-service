@@ -227,9 +227,23 @@ def tbank_recipe_salary_transfer():
     expirationTime = int(expirationTime.timestamp()) # convert to epoch, see https://stackoverflow.com/a/23004143/950462
 
     # Let's continue...
+        # Finally, re-queue with the new expiration time (TTL) e.g. current time + 1 month
+    response1 = requests.post("https://api.ourfin.tech/recipes/create/lambda", json={
+        "email": email,
+        "taskName": taskName,
+        "accountFrom": accountFrom,
+        "accountTo": accountTo,
+        "amount": amount,
+        "creationTime": creationTime,
+        "expirationTime": expirationTime,
+        "taskSchedule": taskSchedule,
+        "eventId": eventId,
+        # to add in schedule
+    })
+    logger.info("{} requeued recurring DynamoDB TTL task through Lambda for {} {}".format(email, taskName, response1))
 
     # First, find out transaction history
-    response1 = requests.post("https://api.ourfin.tech/integrations/tbank/transaction_history")
+    # response2 = requests.post("https://api.ourfin.tech/integrations/tbank/transaction_history")
 
     # Look for keyword in transaction history's narrative
 
@@ -241,18 +255,8 @@ def tbank_recipe_salary_transfer():
         "accountTo": accountTo,
         "amount": amount
     })
+    logger.info("{} successfully completed {} {}".format(email, taskName, response2))
 
-    # Finally, re-queue with the new expiration time (TTL) e.g. current time + 1 month
-    response3 = requests.post("https://api.ourfin.tech/recipes/create/lambda", json={
-        "email": email,
-        "taskName": taskName,
-        "accountFrom": accountFrom,
-        "accountTo": accountTo,
-        "amount": amount,
-        "creationTime": creationTime,
-        "expirationTime": expirationTime
-        # to add in schedule
-    })
 
     return jsonify({"status": 200, "message": "OK"}), 200
 
