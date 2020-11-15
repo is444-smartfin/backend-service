@@ -457,7 +457,7 @@ def tbank_recipe_salary_transfer():
     if errorCode == "010000":
         logger.info("{} sent out SMS notification for task".format(
             "user"))  # user_info['email']
-        return jsonify({"status": 200, "data": transactions})
+        return jsonify({"status": 200, "message": "OK"})
 
     return jsonify({"status": 200, "message": "OK"}), 200
 
