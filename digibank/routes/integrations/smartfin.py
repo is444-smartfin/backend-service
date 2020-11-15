@@ -34,21 +34,8 @@ def get_user_info(token):
     user_info = response.json()
     return user_info
 
-
-@app.route("/integrations/smartfin/user_accounts", methods=['GET'])
-@requires_auth
-def smartfin_list_user_accounts():
-    # find out who's calling this endpoint
-    token = get_token_auth_header()
-    user_info = get_user_info(token)
-
-    # then get POSTed form data
-    data = request.get_json()
-
-    # request for OTP
+def list_accounts(userID, PIN):
     serviceName = "getCustomerAccounts"
-    userID = "goijiajian"
-    PIN = "123456"
     OTP = "999999"
 
     header = {
@@ -70,16 +57,51 @@ def smartfin_list_user_accounts():
 
     if errorCode == "010000":
         logger.info("{} successfully requested for their Accounts List".format(
-            user_info['email']))
+            "user"))
         accountsList = serviceResp['AccountList']['account']
-        return jsonify({"status": 200, "data": accountsList})
+        return accountsList
+    return None
 
-    return jsonify({"status": 401, "message": "Unknown error."}), 401
+@app.route("/integrations/smartfin/user_accounts", methods=['GET', 'POST'])
+def smartfin_list_user_accounts():
+    # then get POSTed form data
+    data = request.get_json()
+    email = "jiajiannn@gmail.com" #data['email']
 
-    # if can login, we save it to our db, for now...
-    # (not v secure... but tBank doesn't support OAuth)
+    table = dynamodb.Table("users")
+    response = table.query(
+        KeyConditionExpression=Key("email").eq(email)
+    )
+    accounts = response['Items'][0]['accounts']
+    # tbank = []
+    # ocbc = []
+    # dbs = []
 
-    # post data to dynamodb
+    userID = "goijiajian"
+    PIN = "123456"
+    tbank = list_accounts(userID, PIN)
+    
+    userID = "jjgoi"
+    ocbc = list_accounts(userID, PIN)
+
+    userID = "jjgoidbs"
+    dbs = list_accounts(userID, PIN)
+
+    dataResponse = {}
+    if tbank is not None:
+        if isinstance(tbank, dict):
+            tbank = [tbank]
+        dataResponse['tbank'] = tbank
+    if ocbc is not None:
+        if isinstance(ocbc, dict):
+            ocbc = [ocbc]
+        dataResponse['ocbc'] = ocbc
+    if dbs is not None:
+        if isinstance(dbs, dict):
+            dbs = [dbs]
+        dataResponse['dbs'] = dbs
+
+    return jsonify({"status": 200, "data": dataResponse}), 200
 
 @app.route("/integrations/smartfin/transaction_history", methods=['POST'])
 # @requires_auth

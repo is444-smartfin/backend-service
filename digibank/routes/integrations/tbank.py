@@ -283,6 +283,30 @@ def tbank_credit_transfer():
     # post data to dynamodb
 
 
+@app.route("/integrations/tbank/recipe_salary_transfer/trigger", methods=['POST'])
+@requires_auth
+def tbank_recipe_salary_transfer_trigger():
+    # find out who's calling this endpoint
+    token = get_token_auth_header()
+    user_info = get_user_info(token)
+
+    # then get POSTed form data
+    data = request.get_json()
+    email = user_info['email']
+    taskName = data['task_name']
+
+    table = dynamodb.Table("scheduled_tasks")
+    response = table.delete_item(
+        Key={
+            'email': email,
+            'task_name': taskName,
+        }
+    )
+    logger.info(
+        "{} requested to manually trigger task {}".format(email, taskName))
+    return jsonify({"status": 200, "message": "Successfully triggered the task. Please check the status in Run History."}), 200
+
+
 @app.route("/integrations/tbank/recipe_salary_transfer", methods=['POST'])
 def tbank_recipe_salary_transfer():
     # get posted JSON data from AWS Lambda
@@ -368,6 +392,72 @@ def tbank_recipe_salary_transfer():
     })
     logger.info("{} requeued recurring DynamoDB TTL task through Lambda for {} {}".format(
         email, taskName, response3))
+
+    # TODO: Fk this is fking long
+
+    # tbank
+    serviceName = "getCustomerDetails"
+    userID = "goijiajian"
+    PIN = "123456"
+    OTP = "999999"
+    header = {
+        "Header": {
+            "serviceName": serviceName,
+            "userID": userID,
+            "PIN": PIN,
+            "OTP": OTP
+        }
+    }
+    final_url = "{0}?Header={1}".format(
+        url(), json.dumps(header))
+    print(final_url)
+
+    response = requests.post(final_url)
+    serviceResp = response.json()['Content']['ServiceResponse']
+    serviceRespHeader = serviceResp['ServiceRespHeader']
+    errorCode = serviceRespHeader['GlobalErrorID']
+
+    if errorCode == "010000":
+        logger.info("{} successfully requested for their Customer Details".format(
+            "user"))  # user_info['email']
+
+    # tbank
+    serviceName = "sendSMS"
+    userID = "goijiajian"
+    PIN = "123456"
+    OTP = "999999"
+    # Content
+    mobileNumber = "+{}{}".format(serviceResp['CDMCustomer']['phone']
+                                  ['countryCode'], serviceResp['CDMCustomer']['phone']['localNumber'])
+    message = "Fr SmartFIN: Transferred SGD {} to your designated account.".format(amountToTransfer)
+
+    header = {
+        "Header": {
+            "serviceName": serviceName,
+            "userID": userID,
+            "PIN": PIN,
+            "OTP": OTP
+        }
+    }
+    content = {
+        "Content": {
+            "mobileNumber": mobileNumber,
+            "message": message,
+        }
+    }
+    final_url = "{0}?Header={1}&Content={2}".format(
+        url(), json.dumps(header), json.dumps(content))
+    print(final_url)
+
+    response = requests.post(final_url)
+    serviceResp = response.json()['Content']['ServiceResponse']
+    serviceRespHeader = serviceResp['ServiceRespHeader']
+    errorCode = serviceRespHeader['GlobalErrorID']
+
+    if errorCode == "010000":
+        logger.info("{} sent out SMS notification for task".format(
+            "user"))  # user_info['email']
+        return jsonify({"status": 200, "data": transactions})
 
     return jsonify({"status": 200, "message": "OK"}), 200
 

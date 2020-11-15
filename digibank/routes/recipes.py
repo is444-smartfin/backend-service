@@ -292,6 +292,7 @@ def recipes_requirements_satisfied():
     data = {
         "tbank": False,
         "ocbc": False,
+        "dbs": False,
     }
     accounts = response['Items'][0]['accounts']
 
@@ -299,5 +300,7 @@ def recipes_requirements_satisfied():
         data['tbank'] = True
     if "ocbc" in accounts:
         data['ocbc'] = True
+    if "dbs" in accounts:
+        data['dbs'] = True
 
     return jsonify({"status": 200, "data": data}), 200
