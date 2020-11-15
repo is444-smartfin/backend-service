@@ -316,8 +316,44 @@ def tbank_recipe_salary_transfer():
     expirationTime = int(expirationTime.timestamp())
 
     # Let's continue...
-    # First, re-queue with the new expiration time (TTL) e.g. current time + 1 month
-    response1 = requests.post("https://api.ourfin.tech/recipes/create/lambda", json={
+
+    # First, find out transaction history using keyword search for "salary"
+    response1 = requests.post(
+        "https://api.ourfin.tech/integrations/tbank/lookup_transaction_history")
+    txn = response1.json()
+    salary = 0
+    if "data" in txn:
+        salary = float(txn['data']['transactionAmount'])
+        logger.info("{} found an incoming salary transfer for task {} with amount SGD {}".format(
+            email, taskName, salary))
+
+    amountToTransfer = salary * (float(amount) / 100)  # calc % of salary
+    logger.info("{} calculated amount to transfer, {}% of SGD {} is SGD {}".format(
+        email, amount, salary, amountToTransfer))
+
+    # Next, if can find, do a transfer of x% of that transaction's amount
+    # response2 = requests.post("http://localhost:5000/integrations/tbank/credit_transfer", json={
+    response2 = requests.post("https://api.ourfin.tech/integrations/tbank/credit_transfer", json={
+        "transactionId": eventId,
+        "email": email,
+        "narrative": "Automated task by SmartFIN ({}, SGD {})".format("salary", salary),
+        "accountFrom": accountFrom,
+        "accountTo": accountTo,
+        "amount": amountToTransfer,
+    })
+    logger.info("{} successfully completed {} {}".format(
+        email, taskName, response2))
+
+    loggingData = {}
+
+    if "data" in txn:
+        loggingData['transactionAmount'] = txn['data']['transactionAmount']
+        loggingData['transactionID'] = txn['data']['transactionID']
+        loggingData['narrative'] = txn['data']['narrative']
+
+    # Finally, re-queue with the new expiration time (TTL) e.g. current time + 1 month
+    response3 = requests.post("http://localhost:5000/recipes/create/lambda", json={
+    # response3 = requests.post("https://api.ourfin.tech/recipes/create/lambda", json={
         "email": email,
         "taskName": taskName,
         "accountFrom": accountFrom,
@@ -327,27 +363,11 @@ def tbank_recipe_salary_transfer():
         "expirationTime": expirationTime,
         "taskSchedule": taskSchedule,
         "eventId": eventId,
+        "loggingData": loggingData
         # to add in schedule
     })
     logger.info("{} requeued recurring DynamoDB TTL task through Lambda for {} {}".format(
-        email, taskName, response1))
-
-    # First, find out transaction history
-    # response2 = requests.post("https://api.ourfin.tech/integrations/tbank/transaction_history")
-
-    # Look for keyword in transaction history's narrative
-
-    # If can find, do a transfer of x% of that transaction's amount
-    response2 = requests.post("https://api.ourfin.tech/integrations/tbank/credit_transfer", json={
-        "transactionId": eventId,
-        "email": email,
-        "narrative": "Automated transfer by SmartFIN Recipe.",
-        "accountFrom": accountFrom,
-        "accountTo": accountTo,
-        "amount": amount,
-    })
-    logger.info("{} successfully completed {} {}".format(
-        email, taskName, response2))
+        email, taskName, response3))
 
     return jsonify({"status": 200, "message": "OK"}), 200
 

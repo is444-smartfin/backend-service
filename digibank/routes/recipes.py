@@ -87,7 +87,8 @@ def recipes_create_lambda():
             },
             ReturnValues="ALL_NEW"
         )
-        logger.info("{} completed task {} with AWS Lambda correlation ID {}".format(email, taskName, eventId))
+        logger.info("{} completed task {} with AWS Lambda correlation ID {}".format(
+            email, taskName, eventId))
         logger.info("{} DynamoDB response was {}".format(email, response))
 
     elif taskName == "smartfin.aggregated_email":
@@ -115,31 +116,43 @@ def recipes_create_lambda():
             },
             ReturnValues="ALL_NEW"
         )
-        logger.info("{} completed task {} with AWS Lambda correlation ID {}".format(email, taskName, eventId))
+        logger.info("{} completed task {} with AWS Lambda correlation ID {}".format(
+            email, taskName, eventId))
         logger.info("{} DynamoDB response was {}".format(email, response))
 
     # Keep track of task run history
+    ddbValues = {
+        'task_name': taskName,
+        'correlation_id': eventId,
+    }
+
+    if "loggingData" in data:
+        if "transactionID" in data['loggingData']:
+            ddbValues['tbank_transaction_id'] = data['loggingData']['transactionID']
+        if "transactionAmount" in data['loggingData']:
+            ddbValues['tbank_transaction_amount'] = data['loggingData']['transactionAmount']
+        if "narrative" in data['loggingData']:
+            ddbValues['tbank_narrative'] = data['loggingData']['narrative']
+
     table2 = dynamodb.Table("scheduled_tasks_history")
     table2.update_item(
-            Key={
-                'email': email,
-                'id': str(uuid.uuid4()),
-            },
-            UpdateExpression="set #data = :data, #runTime = :runTime",
-            ExpressionAttributeNames={
-                '#data': 'data',
-                '#runTime': 'run_time',
-            },
-            ExpressionAttributeValues={
-                ':data': {
-                    'task_name': taskName,
-                    'correlation_id': eventId,
-                },
-                ':runTime': int(creationTime),
-            },
-            ReturnValues="ALL_NEW"
-        )
-    logger.info("{} logged task {} into scheduled_tasks_history".format(email, taskName))
+        Key={
+            'email': email,
+            'id': str(uuid.uuid4()),
+        },
+        UpdateExpression="set #data = :data, #runTime = :runTime",
+        ExpressionAttributeNames={
+            '#data': 'data',
+            '#runTime': 'run_time',
+        },
+        ExpressionAttributeValues={
+            ':data': ddbValues,
+            ':runTime': int(creationTime),
+        },
+        ReturnValues="ALL_NEW"
+    )
+    logger.info(
+        "{} logged task {} into scheduled_tasks_history".format(email, taskName))
 
     return jsonify({"status": 200, "message": "OK"}), 200
 
@@ -233,6 +246,7 @@ def recipes_list():
 
     return jsonify({"status": 200, "data": data}), 200
 
+
 @app.route("/recipes/run_history", methods=['POST'])
 @requires_auth
 def recipes_run_history():
@@ -259,6 +273,7 @@ def recipes_run_history():
     data = sorted(data, key=lambda k: k['run_time'], reverse=True)
 
     return jsonify({"status": 200, "data": data}), 200
+
 
 @app.route("/recipes/requirements_satisfied", methods=['GET'])
 @requires_auth
