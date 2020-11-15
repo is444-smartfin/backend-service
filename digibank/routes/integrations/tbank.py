@@ -352,8 +352,8 @@ def tbank_recipe_salary_transfer():
         loggingData['narrative'] = txn['data']['narrative']
 
     # Finally, re-queue with the new expiration time (TTL) e.g. current time + 1 month
-    response3 = requests.post("http://localhost:5000/recipes/create/lambda", json={
-    # response3 = requests.post("https://api.ourfin.tech/recipes/create/lambda", json={
+    # response3 = requests.post("http://localhost:5000/recipes/create/lambda", json={
+    response3 = requests.post("https://api.ourfin.tech/recipes/create/lambda", json={
         "email": email,
         "taskName": taskName,
         "accountFrom": accountFrom,
