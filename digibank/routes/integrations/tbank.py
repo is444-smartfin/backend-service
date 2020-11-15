@@ -103,8 +103,8 @@ def tbank_transaction_history():
     OTP = "999999"
     # Content
     accountID = "6624"  # data['accountId']
-    startDate = "2020-08-01T00:00:00"
-    endDate = "2020-12-30T00:00:00"
+    startDate = "2020-11-15T12:00:00"
+    endDate = "2020-11-15T13:00:00"
     numRecordsPerPage = "15"
     pageNum = "1"
 
@@ -143,6 +143,71 @@ def tbank_transaction_history():
     return jsonify({"status": 401, "message": "Unknown error."}), 401
 
 
+# Gets the MOST recent transaction with narrative that matches the keyword
+@app.route("/integrations/tbank/lookup_transaction_history", methods=['GET', 'POST'])
+# @requires_auth
+def tbank_lookup_transaction_history():
+    # then get data
+    data = request.get_json()
+    # post data to dynamodb
+
+    keyword = "salary"  # get from data['keyword']
+
+    # tbank
+    serviceName = "getTransactionHistory"
+    userID = "goijiajian"
+    PIN = "123456"
+    OTP = "999999"
+    # Content
+    accountID = "6624"  # data['accountId']
+    startDate = "2020-11-14T20:00:00"  # hardcoded lulz
+    endDate = "2020-11-15T13:00:00"
+    numRecordsPerPage = "15"
+    pageNum = "1"
+
+    header = {
+        "Header": {
+            "serviceName": serviceName,
+            "userID": userID,
+            "PIN": PIN,
+            "OTP": OTP
+        }
+    }
+    content = {
+        "Content": {
+            "accountID": accountID,
+            "startDate": startDate,
+            "endDate": endDate,
+            "numRecordsPerPage": numRecordsPerPage,
+            "pageNum": pageNum
+        }
+    }
+    final_url = "{0}?Header={1}&Content={2}".format(
+        url(), json.dumps(header), json.dumps(content))
+    print(final_url)
+
+    response = requests.post(final_url)
+    serviceResp = response.json()['Content']['ServiceResponse']
+    serviceRespHeader = serviceResp['ServiceRespHeader']
+    errorCode = serviceRespHeader['GlobalErrorID']
+
+    if errorCode == "010000":
+        logger.info("{} successfully requested for their Transaction History".format(
+            "user"))  # user_info['email']
+        transactions = serviceResp['CDMTransactionDetail']['transaction_Detail']
+
+        # print(serviceResp['CDMTransactionDetail'])
+        for txn in transactions:
+            # from dbtt: text processing, strip spaces then lower them
+            processed_narrative = txn['narrative'].replace(" ", "").lower()
+
+            if keyword in processed_narrative:
+                # print(keyword, processed_narrative)
+                return jsonify({"status": 200, "data": txn})
+        return jsonify({"status": 200, "message": "Unable to find transactions in the past 7 days with keyword {}".format(keyword)})
+    return jsonify({"status": 401, "message": "Unknown error."}), 401
+
+
 @app.route("/integrations/tbank/credit_transfer", methods=['POST'])
 # @requires_auth
 def tbank_credit_transfer():
@@ -152,10 +217,10 @@ def tbank_credit_transfer():
 
     # then get POSTed form data
     data = request.get_json()
-    email = data['email'] # posted from recipe API endpoint
+    email = data['email']  # posted from recipe API endpoint
 
     # Step 1: get tBank account deets from DynamoDB
-    table = dynamodb.Table("accounts")
+    table = dynamodb.Table("users")
     response = table.query(
         KeyConditionExpression=Key("email").eq(email)
     )
@@ -168,7 +233,7 @@ def tbank_credit_transfer():
 
     # Step 2: prepare creditTransfer params
     serviceName = "creditTransfer"
-    userID = accounts['tbank']['userId'] # get from DynamoDB using
+    userID = accounts['tbank']['userId']  # get from DynamoDB using
     PIN = accounts['tbank']['pin']
     OTP = "999999"
     accountFrom = data['accountFrom']
@@ -251,7 +316,7 @@ def tbank_recipe_salary_transfer():
     expirationTime = int(expirationTime.timestamp())
 
     # Let's continue...
-    # Finally, re-queue with the new expiration time (TTL) e.g. current time + 1 month
+    # First, re-queue with the new expiration time (TTL) e.g. current time + 1 month
     response1 = requests.post("https://api.ourfin.tech/recipes/create/lambda", json={
         "email": email,
         "taskName": taskName,
