@@ -34,6 +34,7 @@ def get_user_info(token):
     user_info = response.json()
     return user_info
 
+
 def list_accounts(userID, PIN):
     serviceName = "getCustomerAccounts"
     OTP = "999999"
@@ -62,11 +63,12 @@ def list_accounts(userID, PIN):
         return accountsList
     return None
 
+
 @app.route("/integrations/smartfin/user_accounts", methods=['GET', 'POST'])
 def smartfin_list_user_accounts():
     # then get POSTed form data
     data = request.get_json()
-    email = "jiajiannn@gmail.com" #data['email']
+    email = "jiajiannn@gmail.com"  # data['email']
 
     table = dynamodb.Table("users")
     response = table.query(
@@ -80,7 +82,7 @@ def smartfin_list_user_accounts():
     userID = "goijiajian"
     PIN = "123456"
     tbank = list_accounts(userID, PIN)
-    
+
     userID = "jjgoi"
     ocbc = list_accounts(userID, PIN)
 
@@ -102,6 +104,7 @@ def smartfin_list_user_accounts():
         dataResponse['dbs'] = dbs
 
     return jsonify({"status": 200, "data": dataResponse}), 200
+
 
 @app.route("/integrations/smartfin/transaction_history", methods=['POST'])
 # @requires_auth
@@ -150,7 +153,7 @@ def smartfin_transaction_history():
 
     if errorCode == "010000":
         logger.info("{} successfully requested for their Transaction History".format(
-            "user")) # user_info['email']
+            "user"))  # user_info['email']
         transactions = serviceResp['CDMTransactionDetail']['transaction_Detail']
         return jsonify({"status": 200, "data": transactions})
 
@@ -167,7 +170,7 @@ def smartfin_recipe_aggregated_email():
 
     eventId = data['eventId']
     payload = data['payload']
-    
+
     email = payload['email']['S']
     taskName = payload['task_name']['S']
 
@@ -175,31 +178,41 @@ def smartfin_recipe_aggregated_email():
     if taskName != "smartfin.aggregated_email":
         return jsonify({"status": 403, "message": "Forbidden. Wrong task name provided."}), 403
 
-    taskData = payload['data']['M'] # to
+    taskData = payload['data']['M']  # to
     taskSchedule = taskData['schedule']['S']
+
+    logger.info("{} triggered task {}, starting now...".format(email, taskName))
+    logger.info("{} logging payload data {}".format(email, payload))
 
     # print(taskSchedule, amount, accountFrom, accountTo, email, taskName)
     creationTime = int(time.time())
 
-    expirationTime = datetime.now() + relativedelta(minutes=+5) # use relative delta time, todo: find a way to format/parse schedule
-    expirationTime = int(expirationTime.timestamp()) # convert to epoch, see https://stackoverflow.com/a/23004143/950462
+    # use relative delta time, todo: find a way to format/parse schedule
+    expirationTime = datetime.now() + relativedelta(minutes=+5)
+    # convert to epoch, see https://stackoverflow.com/a/23004143/950462
+    expirationTime = int(expirationTime.timestamp())
 
     # Let's continue...
 
     # First, find out transaction history
-    response1 = requests.post("https://api.ourfin.tech/integrations/tbank/transaction_history")
+    response1 = requests.post(
+        "https://api.ourfin.tech/integrations/tbank/transaction_history")
 
     # Look for keyword in transaction history's narrative
 
     # TODO: gather ALL data above, then email
 
     # Finally, re-queue with the new expiration time (TTL) e.g. current time + 1 month
+    # response3 = requests.post("http://localhost:5000/recipes/create/lambda", json={
     response3 = requests.post("https://api.ourfin.tech/recipes/create/lambda", json={
+        "eventId": eventId,
         "email": email,
         "taskName": taskName,
         "creationTime": creationTime,
         "expirationTime": expirationTime
         # to add in schedule
     })
+
+    logger.info("{} lambda creation status is {}".format(email, response3.text))
 
     return jsonify({"status": 200, "message": "OK"}), 200

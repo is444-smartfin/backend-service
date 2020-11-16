@@ -215,7 +215,7 @@ def recipes_create():
             },
             ReturnValues="ALL_NEW"
         )
-    print(response)
+        print(response)
     return jsonify({"status": 200, "message": "OK"}), 200
 
 

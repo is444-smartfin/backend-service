@@ -325,7 +325,9 @@ def tbank_recipe_salary_transfer():
     if taskName != "tbank.salary.transfer":
         return jsonify({"status": 403, "message": "Forbidden. Wrong task name provided."}), 403
 
+    logger.info("{} triggered task {}, starting now...".format(email, taskName))
     logger.info("{} logging payload data {}".format(email, payload))
+
     taskData = payload['data']['M']  # to
     taskSchedule = taskData['schedule']['S']
     if "S" in taskData['amount']:
