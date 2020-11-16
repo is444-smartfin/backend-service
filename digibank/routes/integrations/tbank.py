@@ -291,9 +291,8 @@ def tbank_recipe_salary_transfer_trigger():
     user_info = get_user_info(token)
 
     # then get POSTed form data
-    data = request.get_json()
     email = user_info['email']
-    taskName = data['task_name']
+    taskName = "tbank.salary.transfer"
 
     table = dynamodb.Table("scheduled_tasks")
     response = table.delete_item(
@@ -304,7 +303,7 @@ def tbank_recipe_salary_transfer_trigger():
     )
     logger.info(
         "{} requested to manually trigger task {}".format(email, taskName))
-    return jsonify({"status": 200, "message": "Successfully triggered the task. Please check the status in Run History."}), 200
+    return jsonify({"status": 200, "message": "OK"}), 200
 
 
 @app.route("/integrations/tbank/recipe_salary_transfer", methods=['POST'])
