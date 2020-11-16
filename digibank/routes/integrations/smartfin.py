@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import time
+import uuid
 from datetime import datetime
 
 import boto3
@@ -63,6 +64,53 @@ def list_accounts(userID, PIN):
         return accountsList
     return None
 
+def list_transactions(userID, PIN, accountID):
+    serviceName = "getTransactionHistory"
+    OTP = "999999"
+
+    # Content
+    # accountID = "6624"
+    startDate = "2020-08-01 00:00:00"
+    endDate = "2020-12-30 00:00:00"
+    numRecordsPerPage = "15"
+    pageNum = "1"
+
+    header = {
+        "Header": {
+            "serviceName": serviceName,
+            "userID": userID,
+            "PIN": PIN,
+            "OTP": OTP
+        }
+    }
+    content = {
+        "Content": {
+            "accountID": accountID,
+            "startDate": startDate,
+            "endDate": endDate,
+            "numRecordsPerPage": numRecordsPerPage,
+            "pageNum": pageNum
+        }
+    }
+    final_url = "{0}?Header={1}&Content={2}".format(
+        url(), json.dumps(header), json.dumps(content))
+    response = requests.post(final_url)
+    print(final_url)
+
+    serviceResp = response.json()['Content']['ServiceResponse']
+    serviceRespHeader = serviceResp['ServiceRespHeader']
+    errorCode = serviceRespHeader['GlobalErrorID']
+
+    if errorCode == "010000":
+        logger.info("{} successfully requested for their Transaction History".format(
+            userID))
+        
+        transactions = serviceResp['CDMTransactionDetail']['transaction_Detail']
+        if isinstance(transactions, dict):
+            transactions = [transactions]
+        
+        return transactions
+    return []
 
 @app.route("/integrations/smartfin/user_accounts", methods=['GET', 'POST'])
 def smartfin_list_user_accounts():
@@ -206,6 +254,56 @@ def smartfin_recipe_aggregated_email():
     # response3 = requests.post("http://localhost:5000/recipes/create/lambda", json={
     response3 = requests.post("https://api.ourfin.tech/recipes/create/lambda", json={
         "eventId": eventId,
+        "email": email,
+        "taskName": taskName,
+        "creationTime": creationTime,
+        "expirationTime": expirationTime
+        # to add in schedule
+    })
+
+    logger.info("{} lambda creation status is {}".format(email, response3.text))
+
+    return jsonify({"status": 200, "message": "OK"}), 200
+
+
+@app.route("/integrations/smartfin/aggregated_email/trigger", methods=['GET', 'POST'])
+def smartfin_recipe_aggregated_email_trigger():
+    # get posted JSON data from AWS Lambda
+
+    email = "jiajiannn@gmail.com"
+    taskName = "smartfin.aggregated_email"
+    taskSchedule = "every hour"
+
+    logger.info("{} manually triggered task {}, starting now...".format(email, taskName))
+
+    # print(taskSchedule, amount, accountFrom, accountTo, email, taskName)
+    creationTime = int(time.time())
+
+    # use relative delta time, todo: find a way to format/parse schedule
+    expirationTime = datetime.now() + relativedelta(minutes=+60)
+    # convert to epoch, see https://stackoverflow.com/a/23004143/950462
+    expirationTime = int(expirationTime.timestamp())
+
+    # Let's continue...
+
+    # First, find out transaction history
+    userID = "goijiajian"
+    PIN = "123456"
+    tbank = list_transactions(userID, PIN, "6624")
+
+    userID = "jjgoi"
+    ocbc = list_transactions(userID, PIN, "6889")
+
+    userID = "jjgoidbs"
+    dbs = list_transactions(userID, PIN, "6951")
+    # TODO: gather ALL data above, then email
+
+    # TODO: process tbank, ocbc, dbs
+
+    # Finally, re-queue with the new expiration time (TTL) e.g. current time + 1 month
+    # response3 = requests.post("http://localhost:5000/recipes/create/lambda", json={
+    response3 = requests.post("https://api.ourfin.tech/recipes/create/lambda", json={
+        "eventId": str(uuid.uuid4()),
         "email": email,
         "taskName": taskName,
         "creationTime": creationTime,
