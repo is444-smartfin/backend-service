@@ -325,9 +325,13 @@ def tbank_recipe_salary_transfer():
     if taskName != "tbank.salary.transfer":
         return jsonify({"status": 403, "message": "Forbidden. Wrong task name provided."}), 403
 
+    logger.info("{} logging payload data {}".format(email, payload))
     taskData = payload['data']['M']  # to
     taskSchedule = taskData['schedule']['S']
-    amount = taskData['amount']['S']
+    if "S" in taskData['amount']:
+        amount = taskData['amount']['S']
+    if "N" in taskData['amount']:
+        amount = taskData['amount']['N']
     accountFrom = taskData['from']['S']
     accountTo = taskData['to']['S']
 
@@ -427,8 +431,8 @@ def tbank_recipe_salary_transfer():
     PIN = "123456"
     OTP = "999999"
     # Content
-    mobileNumber = "+{}{}".format(serviceResp['CDMCustomer']['phone']
-                                  ['countryCode'], serviceResp['CDMCustomer']['phone']['localNumber'])
+    mobileNumber = "+{}{}".format(serviceResp['CDMCustomer']['cellphone']
+                                  ['countryCode'], serviceResp['CDMCustomer']['cellphone']['phoneNumber'])
     message = "Fr SmartFIN: Transferred SGD {} to your designated account.".format(amountToTransfer)
 
     header = {
