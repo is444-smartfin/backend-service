@@ -188,7 +188,7 @@ def smartfin_recipe_aggregated_email():
     creationTime = int(time.time())
 
     # use relative delta time, todo: find a way to format/parse schedule
-    expirationTime = datetime.now() + relativedelta(minutes=+5)
+    expirationTime = datetime.now() + relativedelta(minutes=+60)
     # convert to epoch, see https://stackoverflow.com/a/23004143/950462
     expirationTime = int(expirationTime.timestamp())
 

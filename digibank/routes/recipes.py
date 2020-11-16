@@ -187,10 +187,10 @@ def recipes_create():
                     'from': data['accountFrom'],
                     'to': data['accountTo'],
                     'amount': data['amount'],
-                    'schedule': 'every month'
+                    'schedule': 'every minute'
                 },
                 ':creation': int(time.time()),
-                ':expiration': int(time.time()) + 60*5  # 1 week is 3600*24*7
+                ':expiration': int(time.time()) + 60  # 1 week is 3600*24*7
             },
             ReturnValues="ALL_NEW"
         )
@@ -208,10 +208,10 @@ def recipes_create():
             },
             ExpressionAttributeValues={
                 ':data': {
-                    'schedule': 'every week'
+                    'schedule': 'every hour'
                 },
                 ':creation': int(time.time()),
-                ':expiration': int(time.time()) + 60*5  # 1 week is 3600*24*7
+                ':expiration': int(time.time()) + 60*60  # 1 week is 3600*24*7
             },
             ReturnValues="ALL_NEW"
         )
