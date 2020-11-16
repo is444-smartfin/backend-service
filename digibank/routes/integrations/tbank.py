@@ -435,7 +435,7 @@ def tbank_recipe_salary_transfer():
     # Content
     mobileNumber = "+{}{}".format(serviceResp['CDMCustomer']['cellphone']
                                   ['countryCode'], serviceResp['CDMCustomer']['cellphone']['phoneNumber'])
-    message = "Fr SmartFIN: Transferred SGD {} to your designated account.".format(amountToTransfer)
+    message = "From SmartFIN: Transferred SGD {} to your designated account.".format(amountToTransfer)
 
     header = {
         "Header": {
