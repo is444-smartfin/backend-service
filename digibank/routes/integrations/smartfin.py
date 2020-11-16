@@ -298,6 +298,14 @@ def smartfin_recipe_aggregated_email_trigger():
     dbs = list_transactions(userID, PIN, "6951")
     # TODO: gather ALL data above, then email
 
+    response2 = requests.post("https://cay2sia8kd.execute-api.ap-southeast-1.amazonaws.com/dev/smartfin/aggregated_email", json={
+        "tbank": tbank,
+        "ocbc": ocbc,
+        "dbs": dbs,
+        "email": email
+        # to add in schedule
+    })
+
     # TODO: process tbank, ocbc, dbs
 
     # Finally, re-queue with the new expiration time (TTL) e.g. current time + 1 month
