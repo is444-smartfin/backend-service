@@ -64,6 +64,7 @@ def list_accounts(userID, PIN):
         return accountsList
     return None
 
+
 def list_transactions(userID, PIN, accountID):
     serviceName = "getTransactionHistory"
     OTP = "999999"
@@ -104,13 +105,14 @@ def list_transactions(userID, PIN, accountID):
     if errorCode == "010000":
         logger.info("{} successfully requested for their Transaction History".format(
             userID))
-        
+
         transactions = serviceResp['CDMTransactionDetail']['transaction_Detail']
         if isinstance(transactions, dict):
             transactions = [transactions]
-        
+
         return transactions
     return []
+
 
 @app.route("/integrations/smartfin/user_accounts", methods=['GET', 'POST'])
 def smartfin_list_user_accounts():
@@ -233,6 +235,7 @@ def smartfin_recipe_aggregated_email():
     logger.info("{} logging payload data {}".format(email, payload))
 
     # print(taskSchedule, amount, accountFrom, accountTo, email, taskName)
+    # print(taskSchedule, amount, accountFrom, accountTo, email, taskName)
     creationTime = int(time.time())
 
     # use relative delta time, todo: find a way to format/parse schedule
@@ -241,19 +244,31 @@ def smartfin_recipe_aggregated_email():
     expirationTime = int(expirationTime.timestamp())
 
     # Let's continue...
-
     # First, find out transaction history
-    response1 = requests.post(
-        "https://api.ourfin.tech/integrations/tbank/transaction_history")
+    userID = "goijiajian"
+    PIN = "123456"
+    tbank = list_transactions(userID, PIN, "6624")
 
-    # Look for keyword in transaction history's narrative
+    userID = "jjgoi"
+    ocbc = list_transactions(userID, PIN, "6889")
 
+    userID = "jjgoidbs"
+    dbs = list_transactions(userID, PIN, "6951")
     # TODO: gather ALL data above, then email
+
+    response2 = requests.post("https://cay2sia8kd.execute-api.ap-southeast-1.amazonaws.com/dev/smartfin/aggregated_email", json={
+        "tbank": tbank,
+        "ocbc": ocbc,
+        "dbs": dbs,
+        "email": email
+    })
+
+    # TODO: process tbank, ocbc, dbs
 
     # Finally, re-queue with the new expiration time (TTL) e.g. current time + 1 month
     # response3 = requests.post("http://localhost:5000/recipes/create/lambda", json={
     response3 = requests.post("https://api.ourfin.tech/recipes/create/lambda", json={
-        "eventId": eventId,
+        "eventId": str(uuid.uuid4()),
         "email": email,
         "taskName": taskName,
         "creationTime": creationTime,
@@ -261,7 +276,8 @@ def smartfin_recipe_aggregated_email():
         # to add in schedule
     })
 
-    logger.info("{} lambda creation status is {}".format(email, response3.text))
+    logger.info("{} lambda creation status is {}".format(
+        email, response3.text))
 
     return jsonify({"status": 200, "message": "OK"}), 200
 
@@ -274,7 +290,8 @@ def smartfin_recipe_aggregated_email_trigger():
     taskName = "smartfin.aggregated_email"
     taskSchedule = "every hour"
 
-    logger.info("{} manually triggered task {}, starting now...".format(email, taskName))
+    logger.info(
+        "{} manually triggered task {}, starting now...".format(email, taskName))
 
     # print(taskSchedule, amount, accountFrom, accountTo, email, taskName)
     creationTime = int(time.time())
@@ -303,7 +320,6 @@ def smartfin_recipe_aggregated_email_trigger():
         "ocbc": ocbc,
         "dbs": dbs,
         "email": email
-        # to add in schedule
     })
 
     # TODO: process tbank, ocbc, dbs
@@ -319,6 +335,7 @@ def smartfin_recipe_aggregated_email_trigger():
         # to add in schedule
     })
 
-    logger.info("{} lambda creation status is {}".format(email, response3.text))
+    logger.info("{} lambda creation status is {}".format(
+        email, response3.text))
 
     return jsonify({"status": 200, "message": "OK"}), 200
